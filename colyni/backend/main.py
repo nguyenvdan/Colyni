@@ -68,6 +68,15 @@ class RankBindingBody(BaseModel):
     node_id: str = Field(min_length=1)
 
 
+class PlaceInstanceBody(BaseModel):
+    """Forwarded to inference POST /place_instance (starts a GPU instance for a model)."""
+
+    model_id: str = Field(min_length=1)
+    sharding: str = "Pipeline"
+    instance_meta: str = "MlxRing"
+    min_nodes: int = Field(1, ge=1)
+
+
 app = FastAPI(title="Colyni", version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
@@ -194,6 +203,24 @@ async def cluster_self_id() -> PlainTextResponse:
     """Identifier for this machine in the cluster (plain text)."""
     r = await http().get(f"{INFERENCE_BASE_URL}/node_id")
     return PlainTextResponse(content=r.text, status_code=r.status_code)
+
+
+@app.post("/api/cluster/place-instance")
+async def proxy_place_instance(body: PlaceInstanceBody) -> JSONResponse:
+    """
+    Ask the inference cluster to create a running instance for this model (same as Cluster UI).
+
+    Demo-friendly: no extra auth — lock down before production.
+    """
+    r = await http().post(
+        f"{INFERENCE_BASE_URL}/place_instance",
+        json=body.model_dump(),
+    )
+    try:
+        data = r.json()
+    except Exception:
+        data = {"error": r.text}
+    return JSONResponse(content=data, status_code=r.status_code)
 
 
 @app.get("/api/models")

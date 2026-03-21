@@ -95,6 +95,19 @@ if [[ "${WITH_VITE:-}" == "1" ]]; then
   PIDS+=($!)
 fi
 
+if [[ "${AUTO_PLACE_MODEL:-0}" == "1" ]] && [[ -n "${DEMO_MODEL_ID:-}" ]]; then
+  echo "==> AUTO_PLACE_MODEL=1 — placing ${DEMO_MODEL_ID} once the cluster is reachable (background)"
+  (
+    export INFERENCE_URL="${INFERENCE_URL:-http://127.0.0.1:52415}"
+    sleep 8
+    if [[ -x "$ROOT/scripts/place-cluster-model.sh" ]]; then
+      "$ROOT/scripts/place-cluster-model.sh" "${DEMO_MODEL_ID}" || echo "AUTO_PLACE_MODEL: placement failed (cluster may still be starting — run scripts/place-cluster-model.sh manually)"
+    else
+      bash "$ROOT/scripts/place-cluster-model.sh" "${DEMO_MODEL_ID}" || echo "AUTO_PLACE_MODEL: placement failed"
+    fi
+  ) &
+fi
+
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo " Colyni coordinator — same Wi‑Fi (LAN)"
@@ -125,7 +138,8 @@ echo "  Contributors (manual): Settings → Contributor → Coordinator API →"
 echo "    http://${LAN_IP}:${COLYNI_BACKEND_PORT}"
 echo ""
 echo "  Stop: Ctrl+C"
-echo "  Env:  LAN_IP=… override IP · SKIP_UI_BUILD=1 · WITH_VITE=1 · COLYNI_DEMO_LAN=0"
+echo "  Env:  LAN_IP=… · SKIP_UI_BUILD=1 · WITH_VITE=1 · COLYNI_DEMO_LAN=0"
+echo "        AUTO_PLACE_MODEL=1 DEMO_MODEL_ID=org/name — auto-request GPU instance after boot"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 

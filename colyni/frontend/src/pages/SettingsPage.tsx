@@ -188,11 +188,12 @@ export function SettingsPage({ nodeId, onNodeIdChange }: SettingsPageProps) {
       <header className="animate-fade-up">
         <h1 className="text-[22px] font-semibold tracking-tight text-cy-text">Settings</h1>
         <p className="mt-1 max-w-lg text-[14px] text-cy-secondary">
-          Choose how this laptop connects to the cluster, then pick favorite models for Chat.
+          Tap ⭐ on models you want in Chat. If you’re on a second laptop, tell it how to find the
+          first one.
         </p>
       </header>
 
-      {/* Live Colyni API status (port 8787) — separate from exo mesh on :52415 */}
+      {/* Connection health — credits / chat vs GPU mesh */}
       <GlowCard className="animate-fade-up" innerClassName="p-5">
         <div className="flex flex-wrap items-start gap-3">
           <div
@@ -213,30 +214,25 @@ export function SettingsPage({ nodeId, onNodeIdChange }: SettingsPageProps) {
             )}
           </div>
           <div className="min-w-0 flex-1 space-y-1">
-            <h2 className="text-[14px] font-medium text-cy-text">Colyni API (ledger)</h2>
+            <h2 className="text-[14px] font-medium text-cy-text">Are we connected?</h2>
             <p className="text-[12px] leading-relaxed text-cy-secondary">
               {snap.role === 'coordinator' ? (
                 <>
-                  This app talks to the Colyni backend on <span className="font-mono">8787</span>{' '}
-                  (credits, heartbeats, chat proxy). That is{' '}
-                  <strong className="font-medium text-cy-text">not</strong> the same process as the
-                  GPU mesh on <span className="font-mono">52415</span> — exo can look healthy while
-                  the API here is down or blocked.
+                  Green means this app can talk to the <span className="font-medium text-cy-text">points &amp; chat</span>{' '}
+                  part of the demo. That’s different from the big GPU screen — both should work for a
+                  smooth demo.
                 </>
               ) : snap.coordinatorApiUrl.trim() ? (
                 <>
-                  Pings the host you saved (
+                  Green means we can reach your friend’s computer (
                   <span className="break-all font-mono text-[11px] text-cy-text">
                     {snap.coordinatorApiUrl.replace(/\/$/, '')}
                   </span>
-                  ). If this stays red, fix CORS on the host or confirm{' '}
-                  <span className="font-mono text-[11px]">demo-coordinator.sh</span> is running — the
-                  mesh on :52415 can still work without this.
+                  ). If it’s red, ask them to run the host script or check Wi‑Fi.
                 </>
               ) : (
                 <>
-                  Set coordinator URL below and <strong className="text-cy-text">Save connection</strong>{' '}
-                  to monitor reachability.
+                  Paste your friend&apos;s address below, then tap <strong className="text-cy-text">Save</strong>.
                 </>
               )}
             </p>
@@ -331,10 +327,10 @@ export function SettingsPage({ nodeId, onNodeIdChange }: SettingsPageProps) {
 
       {/* Machine role */}
       <GlowCard className="animate-fade-up delay-75" innerClassName="p-6">
-        <h2 className="text-[15px] font-medium text-cy-text">This Mac&apos;s role</h2>
+        <h2 className="text-[15px] font-medium text-cy-text">Which computer is this?</h2>
         <p className="mt-1 text-[13px] text-cy-secondary">
-          Switch any time — both you and Dan can use the same build; only the connection settings
-          change.
+          Pick one — you can change it later. If you’re not sure: the person who started the demo
+          picks <span className="font-medium text-cy-text">Main computer</span>.
         </p>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -350,11 +346,10 @@ export function SettingsPage({ nodeId, onNodeIdChange }: SettingsPageProps) {
           >
             <div className="flex items-center gap-2">
               <Server className="size-5 text-cy-green" strokeWidth={1.75} />
-              <span className="text-[14px] font-semibold text-cy-text">Runs the LLM here</span>
+              <span className="text-[14px] font-semibold text-cy-text">Main computer</span>
             </div>
             <p className="mt-2 text-[12px] leading-relaxed text-cy-secondary">
-              This Mac runs <span className="font-mono">colyni-cluster</span> and the Colyni backend.
-              Use the normal dev commands on this machine.
+              The “host” — this is the laptop that runs the app for everyone else to connect to.
             </p>
           </button>
 
@@ -370,11 +365,10 @@ export function SettingsPage({ nodeId, onNodeIdChange }: SettingsPageProps) {
           >
             <div className="flex items-center gap-2">
               <Users className="size-5 text-cy-green" strokeWidth={1.75} />
-              <span className="text-[14px] font-semibold text-cy-text">Contributor</span>
+              <span className="text-[14px] font-semibold text-cy-text">Another laptop</span>
             </div>
             <p className="mt-2 text-[12px] leading-relaxed text-cy-secondary">
-              Chat uses someone else&apos;s Colyni API. You still run a local worker so this laptop
-              can join the cluster and earn credits.
+              You’re joining a friend — you’ll use their link or paste their address below.
             </p>
           </button>
         </div>
@@ -383,12 +377,12 @@ export function SettingsPage({ nodeId, onNodeIdChange }: SettingsPageProps) {
           <div className="mt-6 space-y-4 rounded-xl border border-cy-border bg-cy-inset/80 p-4">
             <div>
               <label className="text-[11px] font-medium uppercase tracking-wider text-cy-muted">
-                Coordinator Colyni API
+                Friend&apos;s address
               </label>
               <p className="mt-0.5 text-[12px] text-cy-muted">
-                The other person&apos;s backend URL (port <span className="font-mono">8787</span>).
-                They must add your browser origin to <span className="font-mono">CORS_ORIGINS</span>{' '}
-                on their Mac.
+                Paste what they sent you — usually looks like{' '}
+                <span className="font-mono text-[11px]">http://192.168.…:8787</span>. (The host may
+                need to allow your browser in their network settings — demo script usually does this.)
               </p>
               <input
                 type="url"
@@ -401,11 +395,11 @@ export function SettingsPage({ nodeId, onNodeIdChange }: SettingsPageProps) {
 
             <div>
               <label className="text-[11px] font-medium uppercase tracking-wider text-cy-muted">
-                Your worker on this Mac
+                This laptop&apos;s AI helper
               </label>
               <p className="mt-0.5 text-[12px] text-cy-muted">
-                Where <span className="font-mono">colyni-cluster</span> listens on this laptop (for
-                your node id). Usually <span className="font-mono">http://127.0.0.1:52415</span>.
+                Leave this as-is unless you know what you&apos;re doing — it&apos;s how this Mac
+                joins the team (<span className="font-mono text-[11px]">127.0.0.1:52415</span>).
               </p>
               <input
                 type="url"
@@ -502,10 +496,10 @@ export function SettingsPage({ nodeId, onNodeIdChange }: SettingsPageProps) {
             onClick={applyConnection}
             className="rounded-lg bg-cy-green px-4 py-2.5 text-[13px] font-medium text-cy-bg transition hover:opacity-90"
           >
-            Save connection
+            Save
           </button>
           <span className="text-[12px] text-cy-muted">
-            Saves to this browser only (not synced across devices).
+            Saves on this browser — tap after pasting a link.
           </span>
         </div>
       </GlowCard>
@@ -517,11 +511,11 @@ export function SettingsPage({ nodeId, onNodeIdChange }: SettingsPageProps) {
               <Link2 size={16} strokeWidth={1.5} className="text-cy-secondary" />
             </div>
             <div>
-              <h2 className="text-[15px] font-medium text-cy-text">Invite a teammate</h2>
+              <h2 className="text-[15px] font-medium text-cy-text">Invite a friend</h2>
               <p className="mt-0.5 text-[13px] text-cy-secondary">
-                Open this app using your <span className="font-medium text-cy-text">LAN IP</span> (not
-                localhost), then copy the link. They open it on the same Wi‑Fi — contributor mode and
-                API URL are filled in automatically.
+                Open this page using the <span className="font-medium text-cy-text">numbers your Wi‑Fi gave this Mac</span>{' '}
+                (not “localhost”), then copy the link. They open it on the same Wi‑Fi — it fills in
+                the hard stuff for them.
               </p>
             </div>
           </div>
@@ -561,7 +555,7 @@ export function SettingsPage({ nodeId, onNodeIdChange }: SettingsPageProps) {
               ) : (
                 <>
                   <Copy className="size-4" aria-hidden />
-                  Copy invite link
+                  Copy link for friend
                 </>
               )}
             </button>
@@ -581,9 +575,9 @@ export function SettingsPage({ nodeId, onNodeIdChange }: SettingsPageProps) {
             <Star size={16} strokeWidth={1.5} className="text-cy-secondary" />
           </div>
           <div>
-            <h2 className="text-[15px] font-medium text-cy-text">Favorite models</h2>
+            <h2 className="text-[15px] font-medium text-cy-text">Pick your models</h2>
             <p className="mt-0.5 text-[13px] text-cy-secondary">
-              {favoriteIds.length} selected · Chat only lists these
+              {favoriteIds.length} starred · only these show in Chat
             </p>
           </div>
         </div>

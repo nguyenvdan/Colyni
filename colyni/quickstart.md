@@ -28,6 +28,16 @@ This runs `./scripts/build-cluster-ui.sh`, starts `colyni-cluster` (inference + 
 - `SKIP_UI_BUILD=1` — skip the frontend build if you already ran `build-cluster-ui.sh`.
 - `WITH_VITE=1` — also start Vite with `--host` on **:5173** for hot-reload UI work.
 - `COLYNI_DEMO_LAN=0` — do not override `CORS_ORIGINS`; use only what is in `backend/.env`.
+- **`AUTO_PLACE_MODEL=1` + `DEMO_MODEL_ID=org/model`** — after boot, the script waits for the cluster HTTP API and calls `POST /place_instance` so a GPU instance starts **without** clicking around the cluster UI. Large models still need enough RAM across the mesh; pick a model id that fits your hardware.
+
+**Manual one-liner (any time the coordinator is running):**
+
+```bash
+chmod +x scripts/place-cluster-model.sh
+DEMO_MODEL_ID=your-org/your-model ./scripts/place-cluster-model.sh
+```
+
+In the **Chat** tab, if the model is not running yet, use **“Start this model (auto)”** — it hits the same API through the Colyni backend (`8787`).
 
 **Mac 2+ — contributor (worker only):**
 

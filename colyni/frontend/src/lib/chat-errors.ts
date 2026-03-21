@@ -1,8 +1,19 @@
+/** Parsed API error for Chat UI (message + optional “open cluster” CTA). */
+export type ChatApiErrorParsed = {
+  message: string
+  /** True when the model exists in catalog but no GPU instance is running yet. */
+  showOpenCluster: boolean
+}
+
 /** Turn inference proxy errors into short, actionable copy. */
-export function formatChatApiError(status: number, rawBody: string): string {
+export function parseChatApiError(status: number, rawBody: string): ChatApiErrorParsed {
   const trimmed = rawBody.trim()
   if (!trimmed) {
-    return status === 0 ? 'Network error — check URL and CORS.' : `Request failed (${status}).`
+    return {
+      message:
+        status === 0 ? 'Network error — check URL and CORS.' : `Request failed (${status}).`,
+      showOpenCluster: false,
+    }
   }
 
   try {
@@ -16,20 +27,26 @@ export function formatChatApiError(status: number, rawBody: string): string {
       ''
 
     if (status === 404 && /no instance found for model/i.test(msg)) {
-      return (
-        'This model is in the catalog but not loaded as a running instance on the cluster yet. ' +
-        'Open the cluster dashboard (usually :52415), place or download the model, wait until it’s running, then chat again — ' +
-        'or pick a different favorite in Settings that already has an instance.'
-      )
+      return {
+        message:
+          'This model is sleeping — it isn’t turned on yet. Tap the green button below to turn it on (or pick another star in Settings).',
+        showOpenCluster: true,
+      }
     }
 
-    if (msg) return msg
+    if (msg) {
+      return { message: msg, showOpenCluster: false }
+    }
   } catch {
     /* not JSON */
   }
 
   if (trimmed.length > 280) {
-    return `${trimmed.slice(0, 240)}…`
+    return { message: `${trimmed.slice(0, 240)}…`, showOpenCluster: false }
   }
-  return trimmed
+  return { message: trimmed, showOpenCluster: false }
+}
+
+export function formatChatApiError(status: number, rawBody: string): string {
+  return parseChatApiError(status, rawBody).message
 }

@@ -3,11 +3,19 @@ import { Bot, User } from 'lucide-react'
 
 import { AIChatInput } from '@/components/ui/ai-chat-input'
 import { useFavoriteModelIds } from '@/hooks/use-favorite-model-ids'
-import { formatChatApiError } from '@/lib/chat-errors'
+import { useMachineRole } from '@/hooks/use-machine-role'
+import { parseChatApiError } from '@/lib/chat-errors'
 import { apiUrl } from '@/lib/api'
+import { cn } from '@/lib/utils'
 import { GlowCard } from '@/components/ui/glow-card'
 
 type Msg = { role: 'user' | 'assistant'; content: string }
+
+type ChatErrorState = {
+  text: string
+  openCluster?: boolean
+  tone?: 'error' | 'success'
+} | null
 
 type ChatPageProps = {
   nodeId: string
@@ -17,6 +25,7 @@ type ChatPageProps = {
 }
 
 export function ChatPage({ nodeId }: ChatPageProps) {
+  const { localInferenceUrl } = useMachineRole()
   const favoriteIds = useFavoriteModelIds()
   const [balance, setBalance] = useState<number | null>(null)
   const [models, setModels] = useState<{ id: string; label?: string }[]>([])
@@ -31,7 +40,8 @@ export function ChatPage({ nodeId }: ChatPageProps) {
   const resolvedModelId = modelId || favoriteOptions[0]?.id || ''
   const [messages, setMessages] = useState<Msg[]>([])
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<ChatErrorState>(null)
+  const [placing, setPlacing] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -95,17 +105,75 @@ export function ChatPage({ nodeId }: ChatPageProps) {
     return () => window.clearInterval(t)
   }, [nodeId, refreshBalance])
 
+  const placeModelForDemo = useCallback(async () => {
+    if (!resolvedModelId.trim()) return
+    setPlacing(true)
+    try {
+      const r = await fetch(apiUrl('/api/cluster/place-instance'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model_id: resolvedModelId,
+          sharding: 'Pipeline',
+          instance_meta: 'MlxRing',
+          min_nodes: 1,
+        }),
+      })
+      const raw = await r.text()
+      if (!r.ok) {
+        let detail = raw
+        try {
+          const data = JSON.parse(raw) as {
+            detail?: unknown
+            error?: { message?: string }
+          }
+          if (typeof data.detail === 'string') detail = data.detail
+          else if (Array.isArray(data.detail))
+            detail = data.detail
+              .map((x) =>
+                typeof x === 'object' && x && 'msg' in x
+                  ? String((x as { msg: string }).msg)
+                  : String(x),
+              )
+              .join(' ')
+          else if (data.error?.message) detail = data.error.message
+        } catch {
+          /* use raw */
+        }
+        setError({
+          text: detail || `Could not start model (${r.status}).`,
+          openCluster: true,
+          tone: 'error',
+        })
+        return
+      }
+      setError({
+        text: 'Nice — we told the computers to wake up this model. Give it a minute, then send your message again.',
+        tone: 'success',
+      })
+    } catch (e) {
+      setError({
+        text: e instanceof Error ? e.message : 'Request failed',
+        openCluster: true,
+        tone: 'error',
+      })
+    } finally {
+      setPlacing(false)
+    }
+  }, [resolvedModelId])
+
   async function sendChat(text: string) {
     if (!nodeId.trim()) {
-      setError('No node connected. Visit the Contribute tab first.')
+      setError({ text: 'No node connected. Visit the Contribute tab first.' })
       return
     }
     if (!resolvedModelId) {
-      setError(
-        favoriteIds.length === 0
-          ? 'No favorite models. Open Settings to pick models from the catalog.'
-          : 'No matching favorites for this cluster. Update your favorites in Settings.',
-      )
+      setError({
+        text:
+          favoriteIds.length === 0
+            ? 'No favorite models. Open Settings to pick models from the catalog.'
+            : 'No matching favorites for this cluster. Update your favorites in Settings.',
+      })
       return
     }
     setError(null)
@@ -127,13 +195,18 @@ export function ChatPage({ nodeId }: ChatPageProps) {
         }),
       })
       if (r.status === 402) {
-        setError('Not enough credits. Contribute compute to earn more.')
+        setError({ text: 'Not enough credits. Contribute compute to earn more.' })
         setLoading(false)
         return
       }
       if (!r.ok) {
         const raw = await r.text()
-        setError(formatChatApiError(r.status, raw))
+        const p = parseChatApiError(r.status, raw)
+        setError({
+          text: p.message,
+          openCluster: p.showOpenCluster,
+          tone: 'error',
+        })
         setLoading(false)
         return
       }
@@ -150,7 +223,7 @@ export function ChatPage({ nodeId }: ChatPageProps) {
       ])
       void refreshBalance()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Request failed')
+      setError({ text: e instanceof Error ? e.message : 'Request failed' })
     } finally {
       setLoading(false)
     }
@@ -172,9 +245,39 @@ export function ChatPage({ nodeId }: ChatPageProps) {
       </div>
 
       {error && (
-        <p className="mb-3 rounded-md border border-cy-error/20 bg-cy-error-light px-4 py-2.5 text-[13px] text-cy-error" role="alert">
-          {error}
-        </p>
+        <div
+          className={cn(
+            'mb-3 rounded-md border px-4 py-2.5 text-[13px]',
+            error.tone === 'success'
+              ? 'border-cy-green/35 bg-cy-green-light text-cy-green-dark'
+              : 'border-cy-error/20 bg-cy-error-light text-cy-error',
+          )}
+          role="alert"
+        >
+          <p>{error.text}</p>
+          {error.openCluster && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={placing || !resolvedModelId}
+                onClick={() => void placeModelForDemo()}
+                className="inline-flex min-h-[44px] items-center rounded-xl bg-cy-green px-4 py-2 text-[14px] font-semibold text-cy-bg transition hover:opacity-90 disabled:opacity-50"
+              >
+                {placing ? 'Turning on…' : 'Turn on this model'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const u = localInferenceUrl.replace(/\/$/, '')
+                  window.open(u, '_blank', 'noopener,noreferrer')
+                }}
+                className="inline-flex min-h-[44px] items-center rounded-xl border-2 border-cy-border bg-cy-surface px-4 py-2 text-[14px] font-medium text-cy-text transition hover:bg-cy-inset"
+              >
+                See it loading
+              </button>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Messages */}
@@ -188,11 +291,10 @@ export function ChatPage({ nodeId }: ChatPageProps) {
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cy-green-light">
                 <Bot size={22} strokeWidth={1.5} className="text-cy-green" />
               </div>
-              <p className="max-w-xs text-[15px] font-medium text-cy-text">
-                What can I help with?
-              </p>
-              <p className="max-w-sm text-[13px] text-cy-muted">
-                Your prompts run on the Colyni cluster. Each costs 5 credits.
+              <p className="max-w-xs text-[17px] font-semibold text-cy-text">Say anything 👋</p>
+              <p className="max-w-sm text-[13px] leading-relaxed text-cy-muted">
+                Type in the box below. If you see red text, tap <span className="font-medium text-cy-text">Turn on this model</span>{' '}
+                and wait — first time can take a minute.
               </p>
             </GlowCard>
           </div>
@@ -251,7 +353,7 @@ export function ChatPage({ nodeId }: ChatPageProps) {
           modelId={resolvedModelId}
           onModelIdChange={setModelId}
           modelOptions={favoriteOptions}
-          modelOptionsEmptyHint="No favorite models — open Settings and star models from the catalog."
+          modelOptionsEmptyHint="No models picked yet — go to Settings and tap the stars ⭐ next to models you like."
         />
       </div>
     </div>

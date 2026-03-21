@@ -85,11 +85,10 @@ export default function App() {
         <div className="mx-auto max-w-[1100px] px-6 pt-2 md:px-12" role="status">
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-cy-green/35 bg-cy-green-light px-4 py-3 text-[13px] text-cy-secondary">
             <p>
-              <span className="font-semibold text-cy-text">You&apos;re set up as a contributor</span>
+              <span className="font-semibold text-cy-text">You joined a friend&apos;s room</span>
               {' — '}
-              This browser will use the host&apos;s Colyni API. Keep{' '}
-              <span className="font-mono text-[12px] text-cy-text">demo-contributor.sh</span> running on
-              this Mac.
+              This browser talks to their computer. On this Mac, keep the contributor script running
+              (the one from the install instructions) so you can help run the AI.
             </p>
             <button
               type="button"
@@ -111,6 +110,7 @@ export default function App() {
           <HomePage
             onGoChat={() => setTab('chat')}
             onGoContribute={() => setTab('contribute')}
+            onGoSettings={() => setTab('settings')}
           />
         )}
         {tab === 'chat' && (

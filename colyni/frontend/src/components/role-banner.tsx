@@ -11,26 +11,24 @@ export function RoleBanner() {
     >
       {role === 'coordinator' ? (
         <p className="rounded-xl border border-cy-green/25 bg-cy-green-light/60 px-4 py-3 text-[13px] leading-snug text-cy-secondary">
-          <span className="font-semibold text-cy-text">This Mac runs the LLM</span>
+          <span className="font-semibold text-cy-text">You’re on the main computer</span>
           <span className="text-cy-muted"> — </span>
-          Chat and the Colyni API use this computer. Others can switch to &quot;Contributor&quot; in
-          Settings and point at your LAN IP (port 8787).
+          Friends connect to you in Settings. You don’t need to do anything special here — just
+          chat like normal.
         </p>
       ) : missing ? (
         <p className="rounded-xl border border-cy-error/25 bg-cy-error-light px-4 py-3 text-[13px] leading-snug text-cy-error">
-          <span className="font-semibold">Contributor mode needs a coordinator URL</span>
+          <span className="font-semibold">One more step</span>
           {' — '}
-          Open Settings and paste the host Mac&apos;s Colyni API (e.g.{' '}
-          <span className="font-mono text-[12px]">http://192.168.x.x:8787</span>).
+          Open <span className="font-medium">Settings</span> and paste the link your friend gave you
+          (or ask them to send the invite link again).
         </p>
       ) : (
         <p className="rounded-xl border border-cy-border bg-cy-inset px-4 py-3 text-[13px] leading-snug text-cy-secondary">
-          <span className="font-semibold text-cy-text">Contributing from this Mac</span>
+          <span className="font-semibold text-cy-text">You’re helping a friend’s computer</span>
           <span className="text-cy-muted"> — </span>
-          Chat and credits go through{' '}
-          <span className="font-mono text-[12px] text-cy-text">{coordinatorApiUrl}</span>. Keep your
-          local <span className="font-mono text-[12px]">colyni-cluster</span> worker running so this
-          machine can help run models.
+          Chat goes through their machine. Leave the helper app running on this laptop so you can
+          share GPU power.
         </p>
       )}
     </div>

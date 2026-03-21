@@ -1,5 +1,6 @@
 import { ArrowRight, Globe as GlobeIcon, Zap, Shield, Lock } from 'lucide-react'
 
+import { EasyStepsCard } from '@/components/easy-steps-card'
 import { InteractiveGlobe } from '@/components/ui/interactive-globe'
 import { GlowCard } from '@/components/ui/glow-card'
 import { useTheme } from '@/lib/theme'
@@ -7,6 +8,7 @@ import { useTheme } from '@/lib/theme'
 type HomePageProps = {
   onGoChat: () => void
   onGoContribute: () => void
+  onGoSettings: () => void
 }
 
 const FEATURES = [
@@ -44,7 +46,7 @@ const GLOBE_DARK = {
   markerColor: 'rgba(106, 175, 135, 1)',
 }
 
-export function HomePage({ onGoChat, onGoContribute }: HomePageProps) {
+export function HomePage({ onGoChat, onGoContribute, onGoSettings }: HomePageProps) {
   const { theme } = useTheme()
   const globeColors = theme === 'dark' ? GLOBE_DARK : GLOBE_LIGHT
 
@@ -66,8 +68,8 @@ export function HomePage({ onGoChat, onGoContribute }: HomePageProps) {
               <span className="text-cy-green">together.</span>
             </h1>
             <p className="mt-6 max-w-md text-[15px] leading-[1.7] text-cy-secondary">
-              Pool your devices into one compute fabric. Earn credits when you contribute GPU
-              time; spend them to chat with models too large for any single machine.
+              Use a few laptops like one big brain. Read the short steps below — then tap Chat and
+              type whatever you want.
             </p>
             <div className="mt-10 flex flex-wrap items-center gap-3">
               <button
@@ -85,6 +87,16 @@ export function HomePage({ onGoChat, onGoContribute }: HomePageProps) {
               >
                 Contribute compute
               </button>
+              <button
+                type="button"
+                onClick={onGoSettings}
+                className="rounded-md border border-cy-border px-5 py-2.5 text-[14px] font-medium text-cy-secondary transition-colors hover:border-cy-green/30 hover:bg-cy-inset hover:text-cy-text"
+              >
+                Settings
+              </button>
+            </div>
+            <div className="mt-8 w-full max-w-lg">
+              <EasyStepsCard onOpenSettings={onGoSettings} />
             </div>
           </div>
 
