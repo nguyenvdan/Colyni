@@ -6,7 +6,28 @@ Token economy + UI for distributed LLM inference. The **Colyni API** proxies Ope
 
 ## Quick start
 
-### 1. Inference (exo or any OpenAI-compatible server)
+### 1. One-time setup
+
+From this directory:
+
+```bash
+chmod +x scripts/setup.sh scripts/dev.sh scripts/build-cluster-ui.sh
+./scripts/setup.sh
+```
+
+This creates Python `backend/.venv`, installs dependencies, copies `backend/.env.example` → `backend/.env`, and runs `npm install` in `frontend/`.
+
+Edit **`backend/.env`** if your inference URL is not `http://127.0.0.1:52415`. Include **`http://localhost:52415`** (and your LAN origin) in **`CORS_ORIGINS`** when you use the cluster UI below.
+
+### 2. Build the cluster UI (Colyni React, served by `colyni-cluster`)
+
+The inference server serves **`frontend/dist`** instead of the legacy Svelte dashboard:
+
+```bash
+./scripts/build-cluster-ui.sh
+```
+
+### 3. Inference (`colyni-cluster`)
 
 Run your stack so it exposes something like `http://127.0.0.1:52415` with `/v1/models` and `/v1/chat/completions`. Confirm:
 
@@ -14,22 +35,19 @@ Run your stack so it exposes something like `http://127.0.0.1:52415` with `/v1/m
 curl -s http://127.0.0.1:52415/v1/models | head
 ```
 
-### 2. One-time setup
+Open **http://127.0.0.1:52415** for the Colyni UI (keep the Colyni API on **8787** for credits — see below).
 
-From this directory:
+### 4. Run Colyni API (ledger + proxies)
+
+In another terminal:
 
 ```bash
-chmod +x scripts/setup.sh scripts/dev.sh
-./scripts/setup.sh
+cd backend && source .venv/bin/activate && uvicorn main:app --host 0.0.0.0 --port 8787
 ```
 
-This creates Python `backend/.venv`, installs dependencies, copies `backend/.env.example` → `backend/.env`, and runs `npm install` in `frontend/`.
+### 5. Dev alternative: Vite + `dev.sh`
 
-Edit **`backend/.env`** if your inference URL is not `http://127.0.0.1:52415`.
-
-### 3. Run Colyni (backend + UI)
-
-With inference already running:
+For hot-reload UI work (without using :52415):
 
 ```bash
 ./scripts/dev.sh
@@ -37,7 +55,7 @@ With inference already running:
 
 Open **http://localhost:5173**. The Vite dev server proxies `/api` and `/v1` to the Colyni backend on port **8787**.
 
-### 4. Credits
+### 6. Credits
 
 Balances start at `0`. Grant credits for your node (id from **Contribute** or `GET /api/cluster/self-id`):
 
@@ -53,6 +71,7 @@ curl "http://127.0.0.1:8787/api/admin/grant?node_id=YOUR_NODE_ID&amount=500"
 | `COLYNI_DATABASE` | `backend/.env` | SQLite path (default: `backend/colyni.db`) |
 | `CORS_ORIGINS` | `backend/.env` | Comma-separated browser origins |
 | `VITE_COLYNI_API_URL` | `frontend/.env` | **Production only**: full API origin; leave unset in dev |
+| `VITE_COLYNI_LEDGER_URL` | `frontend/.env` | Rare; override Colyni API URL when the UI is not embedded on :52415 |
 | `COLYNI_BACKEND_PORT` | shell | Override backend port for `dev.sh` (default `8787`) |
 
 ## Production build

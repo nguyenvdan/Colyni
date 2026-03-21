@@ -199,6 +199,40 @@ async def list_models() -> JSONResponse:
     return JSONResponse(content=data, status_code=r.status_code)
 
 
+@app.post("/api/models/add")
+async def proxy_models_add(request: Request) -> JSONResponse:
+    """Register a Hugging Face model on the cluster (proxied to inference)."""
+    body = await request.body()
+    ct = request.headers.get("content-type", "application/json")
+    r = await http().post(
+        f"{INFERENCE_BASE_URL}/models/add",
+        content=body,
+        headers={"content-type": ct},
+    )
+    try:
+        data = r.json()
+    except Exception:
+        data = {"error": r.text}
+    return JSONResponse(content=data, status_code=r.status_code)
+
+
+@app.get("/api/models/search")
+async def proxy_models_search(
+    query: str = "",
+    limit: int = 20,
+) -> JSONResponse:
+    """Search Hugging Face for models (proxied to inference)."""
+    r = await http().get(
+        f"{INFERENCE_BASE_URL}/models/search",
+        params={"query": query, "limit": limit},
+    )
+    try:
+        data = r.json()
+    except Exception:
+        data = {"error": r.text}
+    return JSONResponse(content=data, status_code=r.status_code)
+
+
 @app.get("/api/sustainability")
 async def sustainability() -> dict[str, float | int]:
     """Estimated resource savings vs. cloud-only inference (see ledger constants)."""

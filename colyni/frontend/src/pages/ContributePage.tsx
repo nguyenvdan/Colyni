@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Droplets, Leaf, Zap, Copy, Check } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Droplets, Leaf, Zap, Copy, Check, Package, Loader2 } from 'lucide-react'
 import {
   AreaChart,
   Area,
@@ -93,6 +93,16 @@ export function ContributePage() {
     co2_kg_avoided: number
   } | null>(null)
 
+  const [modelQuery, setModelQuery] = useState('')
+  const [clusterModels, setClusterModels] = useState<
+    { id: string; name?: string; family?: string; is_custom?: boolean }[]
+  >([])
+  const [modelsLoading, setModelsLoading] = useState(true)
+  const [modelsLoadError, setModelsLoadError] = useState<string | null>(null)
+  const [addModelId, setAddModelId] = useState('')
+  const [addBusy, setAddBusy] = useState(false)
+  const [addMessage, setAddMessage] = useState<string | null>(null)
+
   function copyId() {
     if (!selfId) return
     void navigator.clipboard.writeText(selfId)
@@ -148,6 +158,85 @@ export function ContributePage() {
     const t = window.setInterval(load, 8000)
     return () => window.clearInterval(t)
   }, [])
+
+  const loadClusterModels = useCallback(async () => {
+    setModelsLoading(true)
+    setModelsLoadError(null)
+    try {
+      const r = await fetch(apiUrl('/api/models'))
+      if (!r.ok) {
+        setModelsLoadError(`Could not load models (${r.status})`)
+        setClusterModels([])
+        return
+      }
+      const body = (await r.json()) as {
+        data?: {
+          id: string
+          name?: string
+          family?: string
+          is_custom?: boolean
+        }[]
+      }
+      const rows = body.data ?? []
+      setClusterModels(
+        rows.map((m) => ({
+          id: m.id,
+          name: m.name,
+          family: m.family,
+          is_custom: m.is_custom,
+        })),
+      )
+    } catch (e) {
+      setModelsLoadError(e instanceof Error ? e.message : 'Request failed')
+      setClusterModels([])
+    } finally {
+      setModelsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void loadClusterModels()
+  }, [loadClusterModels])
+
+  const filteredClusterModels = useMemo(() => {
+    const q = modelQuery.trim().toLowerCase()
+    if (!q) return clusterModels
+    return clusterModels.filter((m) => {
+      const id = m.id.toLowerCase()
+      const name = (m.name ?? '').toLowerCase()
+      const family = (m.family ?? '').toLowerCase()
+      return id.includes(q) || name.includes(q) || family.includes(q)
+    })
+  }, [clusterModels, modelQuery])
+
+  const addModel = useCallback(async () => {
+    const mid = addModelId.trim()
+    if (!mid) {
+      setAddMessage('Enter a model id (e.g. mlx-community/Qwen3-30B-A3B-4bit).')
+      return
+    }
+    setAddBusy(true)
+    setAddMessage(null)
+    try {
+      const r = await fetch(apiUrl('/api/models/add'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model_id: mid }),
+      })
+      const text = await r.text()
+      if (!r.ok) {
+        setAddMessage(text || `Error ${r.status}`)
+        return
+      }
+      setAddMessage('Model registered — downloads continue in the background.')
+      setAddModelId('')
+      void loadClusterModels()
+    } catch (e) {
+      setAddMessage(e instanceof Error ? e.message : 'Request failed')
+    } finally {
+      setAddBusy(false)
+    }
+  }, [addModelId, loadClusterModels])
 
   const nodeIdentities = state?.nodeIdentities as
     | Record<string, { friendlyName?: string }>
@@ -338,6 +427,115 @@ export function ContributePage() {
           {' '}{CO2_PER_KWH} kg CO₂/kWh.
         </p>
       </section>
+
+      {/* Models (cluster) */}
+      <GlowCard className="animate-fade-up delay-200" innerClassName="p-6">
+        <div className="mb-1 flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cy-inset">
+            <Package size={16} strokeWidth={1.5} className="text-cy-secondary" />
+          </div>
+          <div>
+            <h2 className="text-[15px] font-medium text-cy-text">Models on the cluster</h2>
+            <p className="mt-0.5 text-[13px] text-cy-secondary">
+              Same catalog the inference stack exposes (exo model cards). Filter the list, tap to
+              copy an id for Chat — or add a new model from Hugging Face below.
+            </p>
+          </div>
+        </div>
+
+        <label className="mt-5 block text-[11px] font-medium uppercase tracking-wider text-cy-muted">
+          Filter catalog
+        </label>
+        <div className="relative mt-1.5">
+          <input
+            type="search"
+            value={modelQuery}
+            onChange={(e) => setModelQuery(e.target.value)}
+            placeholder="Filter by name, family, or id…"
+            className="w-full rounded-lg border border-cy-border bg-cy-inset px-3 py-2.5 font-mono text-[13px] text-cy-text placeholder:text-cy-muted focus:border-cy-green/40 focus:outline-none"
+          />
+          {modelsLoading && (
+            <Loader2
+              className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-cy-muted"
+              aria-hidden
+            />
+          )}
+        </div>
+        {modelsLoadError && (
+          <p className="mt-3 text-[13px] text-cy-error">{modelsLoadError}</p>
+        )}
+        {!modelsLoadError && !modelsLoading && clusterModels.length === 0 && (
+          <p className="mt-3 text-[13px] text-cy-muted">No model cards loaded yet.</p>
+        )}
+        {clusterModels.length > 0 && (
+          <ul className="mt-3 max-h-48 overflow-y-auto rounded-lg border border-cy-border bg-cy-inset/80">
+            {filteredClusterModels.length === 0 ? (
+              <li className="px-3 py-3 text-[12px] text-cy-muted">No matches for this filter.</li>
+            ) : (
+              filteredClusterModels.map((m) => (
+                <li key={m.id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(m.id)
+                      setAddMessage(`Copied “${m.id}” — paste as the model in Chat.`)
+                    }}
+                    className="flex w-full flex-col items-stretch gap-0.5 px-3 py-2 text-left transition hover:bg-cy-surface"
+                  >
+                    <span className="font-mono text-[12px] text-cy-text">{m.id}</span>
+                    {(m.name && m.name !== m.id) || m.family ? (
+                      <span className="text-[11px] text-cy-muted">
+                        {[m.name && m.name !== m.id ? m.name : null, m.family || null]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </span>
+                    ) : null}
+                  </button>
+                </li>
+              ))
+            )}
+          </ul>
+        )}
+        {clusterModels.length > 0 && (
+          <p className="mt-2 text-[11px] text-cy-muted">
+            {filteredClusterModels.length} of {clusterModels.length} shown
+          </p>
+        )}
+
+        <label className="mt-5 block text-[11px] font-medium uppercase tracking-wider text-cy-muted">
+          Add model from Hugging Face
+        </label>
+        <p className="mt-1 text-[12px] text-cy-muted">
+          Not in the list above? Enter a Hub id to register a new card (downloads in the background).
+        </p>
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+          <input
+            type="text"
+            value={addModelId}
+            onChange={(e) => setAddModelId(e.target.value)}
+            placeholder="org/model-name"
+            className="min-w-0 flex-1 rounded-lg border border-cy-border bg-cy-inset px-3 py-2.5 font-mono text-[13px] text-cy-text placeholder:text-cy-muted focus:border-cy-green/40 focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={() => void addModel()}
+            disabled={addBusy}
+            className="inline-flex shrink-0 items-center justify-center rounded-lg bg-cy-green px-4 py-2.5 text-[13px] font-medium text-cy-bg transition hover:opacity-90 disabled:opacity-50"
+          >
+            {addBusy ? (
+              <>
+                <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+                Adding…
+              </>
+            ) : (
+              'Add to cluster'
+            )}
+          </button>
+        </div>
+        {addMessage && (
+          <p className="mt-3 text-[13px] leading-snug text-cy-secondary">{addMessage}</p>
+        )}
+      </GlowCard>
 
       {/* This device */}
       <GlowCard className="animate-fade-up delay-300" innerClassName="p-6">

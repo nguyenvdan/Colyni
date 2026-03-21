@@ -499,6 +499,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b05b61dc5112cbb17e4b6cd61790d9845d13888356391624cbe7e41efeac1e75"
 
 [[package]]
+name = "colyni_pyo3_bindings"
+version = "0.0.1"
+dependencies = [
+ "delegate",
+ "env_logger",
+ "extend",
+ "futures-lite",
+ "libp2p",
+ "log",
+ "networking",
+ "pin-project",
+ "pyo3",
+ "pyo3-async-runtimes",
+ "pyo3-log",
+ "pyo3-stub-gen",
+ "tokio",
+ "util",
+]
+
+[[package]]
 name = "concurrent-queue"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -903,26 +923,6 @@ checksum = "8be9f3dfaaffdae2972880079a491a1a8bb7cbed0b8dd7a347f668b4150a3b93"
 dependencies = [
  "event-listener",
  "pin-project-lite",
-]
-
-[[package]]
-name = "colyni_pyo3_bindings"
-version = "0.0.1"
-dependencies = [
- "delegate",
- "env_logger",
- "extend",
- "futures-lite",
- "libp2p",
- "log",
- "networking",
- "pin-project",
- "pyo3",
- "pyo3-async-runtimes",
- "pyo3-log",
- "pyo3-stub-gen",
- "tokio",
- "util",
 ]
 
 [[package]]

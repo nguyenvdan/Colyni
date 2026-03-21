@@ -1,21 +1,23 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Home, MessageSquare, Cpu } from 'lucide-react'
+import { Home, MessageSquare, Cpu, Settings } from 'lucide-react'
 
 import { apiUrl } from '@/lib/api'
 import { NavBar, type NavItem } from '@/components/ui/tubelight-navbar'
 import { ChatPage } from '@/pages/ChatPage'
 import { ContributePage } from '@/pages/ContributePage'
 import { HomePage } from '@/pages/HomePage'
+import { SettingsPage } from '@/pages/SettingsPage'
 
 const STORAGE_NODE = 'colyni-node-id'
 const STORAGE_LABEL = 'colyni-label'
 
-export type AppTab = 'home' | 'chat' | 'contribute'
+export type AppTab = 'home' | 'chat' | 'contribute' | 'settings'
 
 const NAV_ITEMS: NavItem[] = [
   { name: 'Home', id: 'home', icon: Home },
   { name: 'Chat', id: 'chat', icon: MessageSquare },
   { name: 'Contribute', id: 'contribute', icon: Cpu },
+  { name: 'Settings', id: 'settings', icon: Settings },
 ]
 
 export default function App() {
@@ -83,6 +85,11 @@ export default function App() {
         {tab === 'contribute' && (
           <div className="mx-auto max-w-[1100px] px-6 pb-28 pt-10 md:px-12">
             <ContributePage />
+          </div>
+        )}
+        {tab === 'settings' && (
+          <div className="mx-auto max-w-[1100px] px-6 pb-28 pt-10 md:px-12">
+            <SettingsPage />
           </div>
         )}
       </main>

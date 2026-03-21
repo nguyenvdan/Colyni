@@ -17,6 +17,8 @@ export type AIChatInputProps = {
   modelId: string
   onModelIdChange: (id: string) => void
   modelOptions: { id: string; label?: string }[]
+  /** Shown when `modelOptions` is empty (e.g. no favorites yet). */
+  modelOptionsEmptyHint?: string
   thinkEnabled?: boolean
   onThinkToggle?: (enabled: boolean) => void
 }
@@ -27,6 +29,7 @@ export function AIChatInput({
   modelId,
   onModelIdChange,
   modelOptions,
+  modelOptionsEmptyHint,
   thinkEnabled = false,
   onThinkToggle,
 }: AIChatInputProps) {
@@ -135,7 +138,11 @@ export function AIChatInput({
         variants={containerVariants}
         animate={isActive || inputValue ? 'expanded' : 'collapsed'}
         initial="collapsed"
-        style={{ overflow: 'hidden', borderRadius: 14 }}
+        style={{
+          // Dropdown is `bottom-full`; hidden would clip it so clicks miss the menu.
+          overflow: modelDropdownOpen ? 'visible' : 'hidden',
+          borderRadius: 14,
+        }}
         onClick={handleActivate}
       >
         <div className="flex h-full w-full flex-col items-stretch rounded-[14px] border border-cy-border bg-cy-surface shadow-sm transition-shadow focus-within:shadow-md">
@@ -165,12 +172,14 @@ export function AIChatInput({
                 <ChevronDown size={12} strokeWidth={2} />
               </button>
               {modelDropdownOpen && (
-                <div className="absolute bottom-full left-0 z-50 mb-2 min-w-[220px] rounded-lg border border-cy-border bg-cy-surface py-1 shadow-lg">
+                <div className="absolute bottom-full left-0 z-[200] mb-2 min-w-[220px] rounded-lg border border-cy-border bg-cy-surface py-1 shadow-lg">
                   <p className="px-3 py-1.5 text-[11px] font-medium uppercase tracking-wider text-cy-muted">
                     Model
                   </p>
                   {modelOptions.length === 0 ? (
-                    <p className="px-3 py-2 text-[13px] text-cy-muted">No models loaded</p>
+                    <p className="px-3 py-2 text-[13px] text-cy-muted">
+                      {modelOptionsEmptyHint ?? 'No models loaded'}
+                    </p>
                   ) : (
                     modelOptions.map((m) => (
                       <button

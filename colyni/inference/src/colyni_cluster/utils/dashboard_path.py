@@ -35,17 +35,25 @@ def find_dashboard() -> Path:
     dashboard = _find_dashboard_in_repo() or _find_dashboard_in_bundle()
     if not dashboard:
         raise FileNotFoundError(
-            "Unable to locate dashboard assets - you probably forgot to run `cd dashboard && npm install && npm run build && cd ..`"
+            "Unable to locate dashboard assets — build the Colyni UI: "
+            "`cd colyni/frontend && npm install && npm run build`, "
+            "or legacy: `cd dashboard && npm install && npm run build`."
         )
     return dashboard
 
 
 def _find_dashboard_in_repo() -> Path | None:
     current_module = Path(__file__).resolve()
+    # Prefer Colyni React (`colyni/frontend/dist`) in two passes: `inference/dashboard/build`
+    # exists as a sibling path before we walk up to `colyni/`, so we must not return legacy first.
     for parent in current_module.parents:
-        build = parent / "dashboard" / "build"
-        if build.is_dir() and (build / "index.html").exists():
-            return build
+        colyni_ui = parent / "frontend" / "dist"
+        if colyni_ui.is_dir() and (colyni_ui / "index.html").exists():
+            return colyni_ui
+    for parent in current_module.parents:
+        legacy = parent / "dashboard" / "build"
+        if legacy.is_dir() and (legacy / "index.html").exists():
+            return legacy
     return None
 
 

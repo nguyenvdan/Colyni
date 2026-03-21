@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Bot, User } from 'lucide-react'
 
 import { AIChatInput } from '@/components/ui/ai-chat-input'
+import { useFavoriteModelIds } from '@/hooks/use-favorite-model-ids'
 import { apiUrl } from '@/lib/api'
 import { GlowCard } from '@/components/ui/glow-card'
 
@@ -15,10 +16,18 @@ type ChatPageProps = {
 }
 
 export function ChatPage({ nodeId }: ChatPageProps) {
+  const favoriteIds = useFavoriteModelIds()
   const [balance, setBalance] = useState<number | null>(null)
   const [models, setModels] = useState<{ id: string; label?: string }[]>([])
   const [modelId, setModelId] = useState('')
-  const resolvedModelId = modelId || models[0]?.id || ''
+
+  const favoriteOptions = useMemo(() => {
+    if (favoriteIds.length === 0 || models.length === 0) return []
+    const byId = new Map(models.map((m) => [m.id, m]))
+    return favoriteIds.filter((id) => byId.has(id)).map((id) => byId.get(id)!)
+  }, [models, favoriteIds])
+
+  const resolvedModelId = modelId || favoriteOptions[0]?.id || ''
   const [messages, setMessages] = useState<Msg[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -48,15 +57,27 @@ export function ChatPage({ nodeId }: ChatPageProps) {
     ;(async () => {
       const r = await fetch(apiUrl('/api/models'))
       if (!r.ok || cancelled) return
-      const data = (await r.json()) as { data?: { id: string }[] }
-      const list = (data.data ?? []).map((m) => ({ id: m.id }))
+      const data = (await r.json()) as { data?: { id: string; name?: string }[] }
+      const list = (data.data ?? []).map((m) => ({
+        id: String(m.id),
+        label: m.name ? String(m.name) : undefined,
+      }))
       setModels(list)
-      setModelId((prev) => prev || list[0]?.id || '')
     })()
     return () => {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    if (favoriteOptions.length === 0) {
+      setModelId('')
+      return
+    }
+    setModelId((prev) =>
+      prev && favoriteOptions.some((m) => m.id === prev) ? prev : favoriteOptions[0].id,
+    )
+  }, [favoriteOptions])
 
   useEffect(() => {
     if (!nodeId.trim()) return
@@ -79,7 +100,11 @@ export function ChatPage({ nodeId }: ChatPageProps) {
       return
     }
     if (!resolvedModelId) {
-      setError('No model selected. Load one on the cluster first.')
+      setError(
+        favoriteIds.length === 0
+          ? 'No favorite models. Open Settings to pick models from the catalog.'
+          : 'No matching favorites for this cluster. Update your favorites in Settings.',
+      )
       return
     }
     setError(null)
@@ -223,7 +248,8 @@ export function ChatPage({ nodeId }: ChatPageProps) {
           disabled={loading}
           modelId={resolvedModelId}
           onModelIdChange={setModelId}
-          modelOptions={models}
+          modelOptions={favoriteOptions}
+          modelOptionsEmptyHint="No favorite models — open Settings and star models from the catalog."
         />
       </div>
     </div>

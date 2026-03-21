@@ -25,22 +25,28 @@ Colyni does **not** replace the cluster runtime’s discovery — it sits **in f
 
    ```bash
    cd colyni
-   chmod +x scripts/setup.sh scripts/dev.sh
+   chmod +x scripts/setup.sh scripts/dev.sh scripts/build-cluster-ui.sh
    ./scripts/setup.sh
    ```
 
-2. **Start `colyni-cluster`** (from `colyni/inference`) on Mac 1 so the API is reachable — typically `http://127.0.0.1:52415` (see `inference/README.md`).
+2. **Build the Colyni UI** that `colyni-cluster` will serve (instead of the legacy exo Svelte dashboard):
 
-3. Edit **`backend/.env`**:
+   ```bash
+   ./scripts/build-cluster-ui.sh
+   ```
+
+3. **Start `colyni-cluster`** (from `colyni/inference`) on Mac 1 so the API is reachable — typically `http://127.0.0.1:52415` (see `inference/README.md`). Open that URL to use the **Colyni** React app; credits still go through the Colyni backend on **8787**.
+
+4. Edit **`backend/.env`**:
 
    ```env
    INFERENCE_BASE_URL=http://127.0.0.1:52415
-   CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://HOST_IP:5173
+   CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://HOST_IP:5173,http://localhost:52415,http://127.0.0.1:52415,http://HOST_IP:52415
    ```
 
    Replace `HOST_IP` with Mac 1’s LAN IP so **Mac 2 and Mac 3 browsers** are allowed to talk to the API.
 
-4. **Expose Colyni to the LAN** (other Macs will open the UI here):
+5. **Expose Colyni to the LAN** (other Macs will open the UI here):
 
    **Backend** — listen on all interfaces:
 
@@ -57,8 +63,7 @@ Colyni does **not** replace the cluster runtime’s discovery — it sits **in f
 
    Or use `./scripts/dev.sh` only if you change it to pass `--host` to Vite and `0.0.0.0` to uvicorn (see README for ports).
 
-5. Open the app on Mac 1: **http://localhost:5173**  
-   From Mac 2 / Mac 3 browsers: **http://HOST_IP:5173**
+6. **Open the app** — either the Vite dev UI (**http://localhost:5173** with `./scripts/dev.sh`) **or** the cluster UI served by inference (**http://localhost:52415** after `build-cluster-ui.sh`). From Mac 2 / Mac 3 browsers: **http://HOST_IP:5173** or **http://HOST_IP:52415** as appropriate.
 
 ---
 
