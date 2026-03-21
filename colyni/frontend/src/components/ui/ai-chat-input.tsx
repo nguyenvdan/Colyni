@@ -124,9 +124,10 @@ export function AIChatInput({
   const hasInput = inputValue.trim().length > 0
 
   const resolvedModelLabel = (() => {
-    if (modelOptions.length === 0) return 'No model'
+    if (!modelId.trim()) return 'Choose a model'
+    if (modelOptions.length === 0) return 'No models'
     const match = modelOptions.find((m) => m.id === modelId)
-    const display = match?.label ?? match?.id ?? modelOptions[0]?.id ?? ''
+    const display = match?.label ?? match?.id ?? modelId
     if (display.length > 24) return display.slice(0, 22) + '…'
     return display
   })()
@@ -183,6 +184,19 @@ export function AIChatInput({
                   <p className="px-3 py-1.5 text-[11px] font-medium uppercase tracking-wider text-cy-muted">
                     Model
                   </p>
+                  {modelId && modelOptions.length > 0 && (
+                    <button
+                      type="button"
+                      className="w-full px-3 py-1.5 text-left text-[12px] text-cy-muted transition hover:bg-cy-inset"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onModelIdChange('')
+                        setModelDropdownOpen(false)
+                      }}
+                    >
+                      Clear selection
+                    </button>
+                  )}
                   {modelOptions.length === 0 ? (
                     <p className="px-3 py-2 text-[13px] text-cy-muted">
                       {modelOptionsEmptyHint ?? 'No models loaded'}

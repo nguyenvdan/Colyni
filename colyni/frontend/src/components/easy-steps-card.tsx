@@ -56,18 +56,18 @@ export function EasyStepsCard({
       </div>
       <ol className="mt-3 list-decimal space-y-2 pl-5 text-[13px] leading-relaxed text-cy-secondary marker:font-semibold marker:text-cy-green">
         <li>
-          <span className="text-cy-text">Open Settings</span> — if a friend sent you a link, you’re
-          already almost done. Tap <span className="font-medium text-cy-text">Save</span>. Then tap
-          the ⭐ stars on models you like.
+          <span className="text-cy-text">Settings</span> — if a friend sent a link, tap{' '}
+          <span className="font-medium text-cy-text">Save</span>. (Optional: star models you use
+          often.)
         </li>
         <li>
-          Come back here and tap <span className="font-medium text-cy-text">Chat</span>. Type
-          anything in the box at the bottom.
+          Tap <span className="font-medium text-cy-text">Chat</span>, open the <span className="font-medium text-cy-text">model</span> menu (chip icon), and pick a model — we load it automatically
+          and show when it&apos;s ready.
         </li>
         <li>
-          If something turns red and says the model isn’t ready, tap{' '}
-          <span className="font-medium text-cy-text">Turn on this model</span> and wait a little —
-          big brains take time to wake up.
+          When you see <span className="font-medium text-cy-text">Ready to chat</span>, type in the
+          box. If something errors, tap <span className="font-medium text-cy-text">Try again</span> or{' '}
+          <span className="font-medium text-cy-text">Open cluster</span>.
         </li>
       </ol>
       {onOpenSettings && (
