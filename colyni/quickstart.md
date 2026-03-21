@@ -1,5 +1,7 @@
 # Colyni — Quickstart: 3 MacBooks
 
+**Preload models + copy-paste demo steps:** [preloadguide.md](./preloadguide.md).
+
 This guide is for **one Mac running the Colyni app (UI + API)** and **two Macs contributing GPU/RAM to the same inference cluster** (Colyni cluster inference in this repo, originally derived from [exo](https://github.com/exo-explore/exo)). All three should be on the **same network** (same Wi‑Fi or LAN).
 
 | Role | Machine | What runs |
@@ -15,11 +17,13 @@ Colyni does **not** replace the cluster runtime’s discovery — it sits **in f
 
 After `./scripts/setup.sh` and a one-time `cd inference && uv sync` on each machine that will run `colyni-cluster`:
 
+**Single entry point (same as the scripts below):** `./scripts/demo-3-macs.sh coordinator` on Mac 1, `./scripts/demo-3-macs.sh contributor` on Mac 2–3, or `./scripts/demo-3-macs.sh help` for a copy-paste checklist.
+
 **Mac 1 — coordinator (runs LLM + Colyni API):**
 
 ```bash
 cd colyni
-chmod +x scripts/demo-coordinator.sh scripts/demo-contributor.sh
+chmod +x scripts/demo-coordinator.sh scripts/demo-contributor.sh scripts/demo-3-macs.sh
 ./scripts/demo-coordinator.sh
 ```
 
@@ -181,5 +185,6 @@ Then all API calls go to Mac 1’s Colyni backend without relying on Vite’s de
 - **Guest laptop not listed under “App connections (ledger)” on Mac 1** — The invite link only configures the browser; it does not register the machine by itself. On each guest: run `demo-contributor.sh`, open the invite link (or set Coordinator API to `http://<Mac_1_LAN>:8787`), **Save** in Settings, then open **Chat** once so heartbeats reach Mac 1’s API. That list is separate from the inference **Cluster** card (mesh peers can take time to show both ways).
 - **`No instance found for model …` (HTTP 404 on chat)** — The model id appears in `/v1/models` but nothing is **running** as a placed instance yet. Open the cluster UI on **:52415**, download/place the model until it shows as running, then try Chat again — or pick a favorite that already has an instance.
 - **Chat dots spin forever / no answer** — The browser waits on the inference stack until it returns (first reply can take a long time on a cold model). The Colyni UI stops waiting after **8 minutes** and shows an error — check the **`colyni-cluster` terminal** on the coordinator for stalls, OOM, or download issues. Don’t send Chat until the cluster UI shows the model **running**, not only “loading.”
+- **Model load takes 5–20+ minutes** — Normal on first run: **Hugging Face** download (speed = your network), writing **multi‑GB** weights to disk, then **MLX** loading layers into GPU memory. The next run is much faster if files stay cached. Watch the Chat banner for **download %** when the cluster reports it; otherwise use **:52415** or the coordinator terminal for progress.
 
 For exo-specific discovery and multi-GPU issues, use the exo project’s issues and docs.
