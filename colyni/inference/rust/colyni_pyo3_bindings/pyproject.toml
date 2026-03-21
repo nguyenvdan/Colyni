@@ -1,0 +1,27 @@
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "colyni-pyo3-bindings"
+version = "0.2.1"
+description = "PyO3 Rust bindings for Colyni cluster inference (networking / libp2p)"
+readme = "README.md"
+authors = [
+  { name = "Andrei Cravtov", email = "the.andrei.cravtov@gmail.com" },
+  { name = "Evan Quiney", email = "evanev7@gmail.com" },
+]
+requires-python = ">=3.13"
+dependencies = []
+
+[dependency-groups]
+dev = ["colyni-pyo3-bindings", "pytest>=8.4.0", "pytest-asyncio>=1.0.0"]
+
+[tool.maturin]
+module-name = "colyni_pyo3_bindings"
+features = ["pyo3/extension-module", "pyo3/experimental-async"]
+
+[tool.pytest.ini_options]
+log_cli = true
+log_cli_level = "INFO"
+asyncio_mode = "auto"

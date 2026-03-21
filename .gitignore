@@ -1,0 +1,31 @@
+# Python
+**/.venv/
+**/venv/
+**/__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+**/node_modules/
+**/dist/
+**/.vite/
+
+# Rust
+**/target/
+
+# OS / editor
+.DS_Store
+.idea/
+*.swp
+*.log
+
+# Env files with secrets (keep .env.example)
+**/.env
+!**/.env.example
+
+# Large / generated
+colyni/inference/tmp/
+colyni/inference/bench/**/*.json

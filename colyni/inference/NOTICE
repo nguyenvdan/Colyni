@@ -1,0 +1,14 @@
+Colyni cluster inference
+==========================
+
+This component is derived from the open-source **exo** project (Apache License 2.0).
+
+- Upstream: https://github.com/exo-explore/exo (or the repository you obtained exo from)
+- SPDX-License-Identifier: Apache-2.0
+
+The original exo copyright notices and license text are included in the repository’s
+`LICENSE` files where applicable. You must retain those notices and license notices
+when redistributing.
+
+This fork may be modified and extended under the Colyni project; the Colyni name and
+branding are not affiliated with the upstream exo project unless explicitly stated.
