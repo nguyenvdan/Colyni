@@ -103,7 +103,7 @@ colyni/
 
 ## Division of Labor
 
-| Kai | Dan |
+| Kai | Dan | Michael
 |---|---|
 | Frontend (Dashboard, Benchmark, Inference UI) | Backend (FastAPI, token ledger, node registry) |
 | Pitch narrative and demo script | exo setup and cluster networking |
