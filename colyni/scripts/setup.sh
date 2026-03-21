@@ -26,4 +26,7 @@ if [[ ! -f .env ]]; then
 fi
 
 echo ""
-echo "Done. Start inference (exo), then run: ./scripts/dev.sh"
+echo "Done."
+echo "  Dev UI + API:     ./scripts/dev.sh  (start colyni-cluster first)"
+echo "  LAN demo (host):  ./scripts/demo-coordinator.sh"
+echo "  LAN demo (guest): ./scripts/demo-contributor.sh  → see quickstart.md"

@@ -11,6 +11,35 @@ Colyni does **not** replace the cluster runtime’s discovery — it sits **in f
 
 ---
 
+## One-command demo (automated)
+
+After `./scripts/setup.sh` and a one-time `cd inference && uv sync` on each machine that will run `colyni-cluster`:
+
+**Mac 1 — coordinator (runs LLM + Colyni API):**
+
+```bash
+cd colyni
+chmod +x scripts/demo-coordinator.sh scripts/demo-contributor.sh
+./scripts/demo-coordinator.sh
+```
+
+This runs `./scripts/build-cluster-ui.sh`, starts `colyni-cluster` (inference + UI on **:52415**), and starts the Colyni backend on **0.0.0.0:8787** with LAN-friendly **CORS** for :5173 and :52415. It prints your LAN URLs for others.
+
+- `SKIP_UI_BUILD=1` — skip the frontend build if you already ran `build-cluster-ui.sh`.
+- `WITH_VITE=1` — also start Vite with `--host` on **:5173** for hot-reload UI work.
+- `COLYNI_DEMO_LAN=0` — do not override `CORS_ORIGINS`; use only what is in `backend/.env`.
+
+**Mac 2+ — contributor (worker only):**
+
+```bash
+cd colyni
+./scripts/demo-contributor.sh
+```
+
+Then in the Colyni app: **Settings → Contributor** → Coordinator API = `http://<Mac_1_LAN_IP>:8787`. Optional: `WITH_VITE=1` on the contributor to serve the React dev app from that laptop.
+
+---
+
 ## Before you start
 
 1. **Same subnet** — All three Macs can ping each other (e.g. `ping 192.168.1.10`).
@@ -25,7 +54,7 @@ Colyni does **not** replace the cluster runtime’s discovery — it sits **in f
 
    ```bash
    cd colyni
-   chmod +x scripts/setup.sh scripts/dev.sh scripts/build-cluster-ui.sh
+   chmod +x scripts/setup.sh scripts/dev.sh scripts/build-cluster-ui.sh scripts/demo-coordinator.sh scripts/demo-contributor.sh
    ./scripts/setup.sh
    ```
 

@@ -283,10 +283,15 @@ export function SettingsPage({ nodeId, onNodeIdChange }: SettingsPageProps) {
           <details className="mt-5 rounded-xl border border-cy-border bg-cy-inset/50 px-4 py-3 text-[13px] text-cy-secondary">
             <summary className="cursor-pointer font-medium text-cy-text">Terminal (this Mac)</summary>
             <p className="mt-2 text-[12px] leading-relaxed">
-              Run inference (see <span className="font-mono">colyni/inference/README.md</span>), build
-              the UI with <span className="font-mono">./scripts/build-cluster-ui.sh</span>, then start
-              the Colyni backend on <span className="font-mono">0.0.0.0:8787</span> so friends can
-              reach you on the LAN. Details in <span className="font-mono">colyni/quickstart.md</span>.
+              <span className="font-medium text-cy-text">Easiest for demos:</span>{' '}
+              <span className="font-mono">./scripts/demo-coordinator.sh</span> — builds the UI, starts{' '}
+              <span className="font-mono">colyni-cluster</span> and the Colyni API on{' '}
+              <span className="font-mono">0.0.0.0:8787</span>, and prints LAN URLs. Add{' '}
+              <span className="font-mono">WITH_VITE=1</span> for hot-reload on :5173.
+            </p>
+            <p className="mt-2 text-[12px] leading-relaxed">
+              Manual steps and multi-Mac notes: <span className="font-mono">colyni/quickstart.md</span>{' '}
+              · inference details: <span className="font-mono">colyni/inference/README.md</span>.
             </p>
           </details>
         )}
@@ -295,10 +300,15 @@ export function SettingsPage({ nodeId, onNodeIdChange }: SettingsPageProps) {
           <details className="mt-4 rounded-xl border border-cy-border bg-cy-inset/50 px-4 py-3 text-[13px] text-cy-secondary">
             <summary className="cursor-pointer font-medium text-cy-text">Terminal (this Mac)</summary>
             <p className="mt-2 text-[12px] leading-relaxed">
-              Start <span className="font-mono">colyni-cluster</span> here in worker / peer mode so
-              you join the same network cluster as the host. Exact flags are in{' '}
-              <span className="font-mono">inference/README.md</span>. Keep Wi‑Fi the same and firewall
-              open for cluster ports.
+              <span className="font-medium text-cy-text">Easiest for demos:</span>{' '}
+              <span className="font-mono">./scripts/demo-contributor.sh</span> — starts{' '}
+              <span className="font-mono">colyni-cluster</span> on this laptop so it joins the mesh, then
+              use Settings above to point at the host&apos;s API. Add <span className="font-mono">WITH_VITE=1</span>{' '}
+              if you want the React app from this machine on :5173.
+            </p>
+            <p className="mt-2 text-[12px] leading-relaxed">
+              Discovery and ports: <span className="font-mono">colyni/inference/README.md</span> — same
+              Wi‑Fi, firewall open for cluster traffic.
             </p>
           </details>
         )}

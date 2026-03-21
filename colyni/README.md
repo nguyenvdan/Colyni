@@ -11,9 +11,11 @@ Token economy + UI for distributed LLM inference. The **Colyni API** proxies Ope
 From this directory:
 
 ```bash
-chmod +x scripts/setup.sh scripts/dev.sh scripts/build-cluster-ui.sh
+chmod +x scripts/setup.sh scripts/dev.sh scripts/build-cluster-ui.sh scripts/demo-coordinator.sh scripts/demo-contributor.sh
 ./scripts/setup.sh
 ```
+
+**Demo / hackathon (host + contributor laptops):** after setup and `cd inference && uv sync` on each machine that runs `colyni-cluster`, use **`./scripts/demo-coordinator.sh`** on the Mac that runs the LLM and **`./scripts/demo-contributor.sh`** on others. See **[quickstart.md](./quickstart.md)** (“One-command demo”).
 
 This creates Python `backend/.venv`, installs dependencies, copies `backend/.env.example` → `backend/.env`, and runs `npm install` in `frontend/`.
 
