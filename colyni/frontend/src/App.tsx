@@ -42,6 +42,10 @@ export default function App() {
     localStorage.setItem(STORAGE_LABEL, v)
   }, [])
 
+  const [joinWelcomeBanner, setJoinWelcomeBanner] = useState(
+    () => typeof window !== 'undefined' && window.__COLYNI_INVITE_APPLIED__ === true,
+  )
+
   useEffect(() => {
     void (async () => {
       try {
@@ -76,6 +80,30 @@ export default function App() {
 
       {/* spacer for fixed navbar */}
       <div className="hidden h-20 sm:block" />
+
+      {joinWelcomeBanner && (
+        <div className="mx-auto max-w-[1100px] px-6 pt-2 md:px-12" role="status">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-cy-green/35 bg-cy-green-light px-4 py-3 text-[13px] text-cy-secondary">
+            <p>
+              <span className="font-semibold text-cy-text">You&apos;re set up as a contributor</span>
+              {' — '}
+              This browser will use the host&apos;s Colyni API. Keep{' '}
+              <span className="font-mono text-[12px] text-cy-text">demo-contributor.sh</span> running on
+              this Mac.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setJoinWelcomeBanner(false)
+                window.__COLYNI_INVITE_APPLIED__ = false
+              }}
+              className="shrink-0 rounded-lg border border-cy-border bg-cy-surface px-3 py-1.5 text-[12px] font-medium text-cy-text hover:bg-cy-inset"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
 
       <main>
         {tab !== 'home' && <RoleBanner />}

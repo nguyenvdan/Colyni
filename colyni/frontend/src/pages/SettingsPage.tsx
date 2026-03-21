@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, Loader2, Server, Star, Users } from 'lucide-react'
+import { CheckCircle2, Copy, Link2, Loader2, Server, Star, Users } from 'lucide-react'
 
 import { GlowCard } from '@/components/ui/glow-card'
 import { apiUrl } from '@/lib/api'
@@ -13,6 +13,7 @@ import {
   setMachineRole,
   type MachineRole,
 } from '@/lib/machine-role'
+import { buildInviteLink } from '@/lib/invite-link'
 import { toggleFavoriteModelId } from '@/lib/favorite-models'
 import { cn } from '@/lib/utils'
 
@@ -33,6 +34,7 @@ export function SettingsPage({ nodeId, onNodeIdChange }: SettingsPageProps) {
   const [draftLocal, setDraftLocal] = useState(snap.localInferenceUrl)
   const [testBusy, setTestBusy] = useState(false)
   const [testMsg, setTestMsg] = useState<string | null>(null)
+  const [inviteCopied, setInviteCopied] = useState(false)
 
   useEffect(() => {
     setDraftRole(snap.role)
@@ -326,6 +328,56 @@ export function SettingsPage({ nodeId, onNodeIdChange }: SettingsPageProps) {
           </span>
         </div>
       </GlowCard>
+
+      {snap.role === 'coordinator' && (
+        <GlowCard className="animate-fade-up delay-100" innerClassName="p-6">
+          <div className="mb-1 flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cy-inset">
+              <Link2 size={16} strokeWidth={1.5} className="text-cy-secondary" />
+            </div>
+            <div>
+              <h2 className="text-[15px] font-medium text-cy-text">Invite a teammate</h2>
+              <p className="mt-0.5 text-[13px] text-cy-secondary">
+                Open this app using your <span className="font-medium text-cy-text">LAN IP</span> (not
+                localhost), then copy the link. They open it on the same Wi‑Fi — contributor mode and
+                API URL are filled in automatically.
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start">
+            <div className="min-w-0 flex-1 rounded-lg border border-cy-border bg-cy-inset px-3 py-2.5 font-mono text-[11px] leading-relaxed text-cy-muted break-all">
+              {(() => {
+                const { url, warning } = buildInviteLink()
+                if (warning) return warning
+                return url || '—'
+              })()}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const { url, warning } = buildInviteLink()
+                if (warning || !url) return
+                void navigator.clipboard.writeText(url)
+                setInviteCopied(true)
+                window.setTimeout(() => setInviteCopied(false), 2000)
+              }}
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-cy-green px-4 py-2.5 text-[13px] font-medium text-cy-bg transition hover:opacity-90"
+            >
+              {inviteCopied ? (
+                <>
+                  <CheckCircle2 className="size-4" aria-hidden />
+                  Copied
+                </>
+              ) : (
+                <>
+                  <Copy className="size-4" aria-hidden />
+                  Copy invite link
+                </>
+              )}
+            </button>
+          </div>
+        </GlowCard>
+      )}
 
       {/* Favorites */}
       <GlowCard className="animate-fade-up delay-100" innerClassName="p-6">

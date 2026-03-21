@@ -38,6 +38,8 @@ cd colyni
 
 Then in the Colyni app: **Settings → Contributor** → Coordinator API = `http://<Mac_1_LAN_IP>:8787`. Optional: `WITH_VITE=1` on the contributor to serve the React dev app from that laptop.
 
+**Seamless option:** On Mac 1, open the app using your **LAN IP** (e.g. `http://192.168.x.x:52415`), go to **Settings → Invite a teammate**, and **Copy invite link**. Send that URL to Mac 2 — opening it in a browser sets contributor mode and the coordinator API automatically (no manual URL fields).
+
 ---
 
 ## Before you start
