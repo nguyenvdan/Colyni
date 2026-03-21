@@ -12,7 +12,9 @@ import {
 
 import { AnimatedNumber } from '@/components/animated-number'
 import { GlowCard } from '@/components/ui/glow-card'
+import { useMachineRole } from '@/hooks/use-machine-role'
 import { apiUrl } from '@/lib/api'
+import { copyTextToClipboard } from '@/lib/copy-to-clipboard'
 import { useTheme } from '@/lib/theme'
 
 type ClusterState = Record<string, unknown> | null
@@ -75,12 +77,14 @@ function CustomTooltip({ active, payload, label }: {
 }
 
 export function ContributePage() {
+  const { role: machineRole } = useMachineRole()
   const { theme } = useTheme()
   const gridStroke = theme === 'dark' ? '#2a2a27' : '#e5e5e3'
   const tickFill = theme === 'dark' ? '#5a5a56' : '#a8a8a3'
 
   const [selfId, setSelfId] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [selfIdCopyError, setSelfIdCopyError] = useState(false)
   const [state, setState] = useState<ClusterState>(null)
   const [stateError, setStateError] = useState<string | null>(null)
   const [nodes, setNodes] = useState<
@@ -103,11 +107,17 @@ export function ContributePage() {
   const [addBusy, setAddBusy] = useState(false)
   const [addMessage, setAddMessage] = useState<string | null>(null)
 
-  function copyId() {
+  async function copyId() {
     if (!selfId) return
-    void navigator.clipboard.writeText(selfId)
-    setCopied(true)
-    window.setTimeout(() => setCopied(false), 2000)
+    setSelfIdCopyError(false)
+    const ok = await copyTextToClipboard(selfId)
+    if (ok) {
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2000)
+    } else {
+      setSelfIdCopyError(true)
+      window.setTimeout(() => setSelfIdCopyError(false), 4000)
+    }
   }
 
   useEffect(() => {
@@ -437,8 +447,10 @@ export function ContributePage() {
           <div>
             <h2 className="text-[15px] font-medium text-cy-text">Models on the cluster</h2>
             <p className="mt-0.5 text-[13px] text-cy-secondary">
-              Same catalog the inference stack exposes (exo model cards). Filter the list, tap to
-              copy an id for Chat — or add a new model from Hugging Face below.
+              Same catalog the inference stack exposes (exo model cards). Chat only works after a
+              model is <strong className="font-medium text-cy-text">running as an instance</strong>{' '}
+              on the cluster — if you see “No instance found”, open the cluster UI on :52415 and
+              place/download the model first.
             </p>
           </div>
         </div>
@@ -477,8 +489,14 @@ export function ContributePage() {
                   <button
                     type="button"
                     onClick={() => {
-                      void navigator.clipboard.writeText(m.id)
-                      setAddMessage(`Copied “${m.id}” — paste as the model in Chat.`)
+                      void (async () => {
+                        const ok = await copyTextToClipboard(m.id)
+                        setAddMessage(
+                          ok
+                            ? `Copied “${m.id}” — paste as the model in Chat.`
+                            : `Could not copy — select the id above and copy manually.`,
+                        )
+                      })()
                     }}
                     className="flex w-full flex-col items-stretch gap-0.5 px-3 py-2 text-left transition hover:bg-cy-surface"
                   >
@@ -549,12 +567,17 @@ export function ContributePage() {
           </code>
           <button
             type="button"
-            onClick={copyId}
+            onClick={() => void copyId()}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-cy-border bg-cy-inset text-cy-secondary transition hover:text-cy-text"
           >
             {copied ? <Check size={14} className="text-cy-green" /> : <Copy size={14} />}
           </button>
         </div>
+        {selfIdCopyError && (
+          <p className="mt-2 text-[12px] text-cy-error" role="alert">
+            Clipboard unavailable — select the text above and copy manually (⌘C / Ctrl+C).
+          </p>
+        )}
       </GlowCard>
 
       {/* Cluster */}
@@ -611,8 +634,21 @@ export function ContributePage() {
 
       {/* Active nodes */}
       <GlowCard innerClassName="p-6">
-        <h2 className="text-[15px] font-medium text-cy-text">Active nodes</h2>
-        <p className="mt-1 text-[13px] text-cy-secondary">Heartbeats in the last 90 seconds.</p>
+        <h2 className="text-[15px] font-medium text-cy-text">App connections (ledger)</h2>
+        <p className="mt-1 text-[13px] text-cy-secondary">
+          Browsers that reached your Colyni API in the last 90 seconds (from the Chat tab). This is{' '}
+          <strong className="font-medium text-cy-text">not</strong> the same as the inference mesh in
+          “Cluster” above — mesh peers can take a minute to show both ways.
+        </p>
+        {machineRole === 'coordinator' && (
+          <p className="mt-3 rounded-lg border border-cy-green/20 bg-cy-green-light/50 px-3 py-2 text-[12px] leading-snug text-cy-secondary">
+            <span className="font-medium text-cy-text">Guest laptop not listed?</span> On each guest:
+            run <span className="font-mono text-[11px]">demo-contributor.sh</span>, open your invite
+            link, <strong className="text-cy-text">Save</strong> in Settings, then open{' '}
+            <strong className="text-cy-text">Chat</strong> once so heartbeats hit this Mac&apos;s API (
+            <span className="font-mono text-[11px]">:8787</span>).
+          </p>
+        )}
         <ul className="mt-5 space-y-2">
           {nodes.length === 0 ? (
             <li className="text-[14px] text-cy-muted">None yet.</li>

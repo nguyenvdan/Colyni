@@ -36,6 +36,21 @@ detect_lan_ip() {
 LAN_IP=$(detect_lan_ip)
 export COLYNI_BACKEND_PORT="${COLYNI_BACKEND_PORT:-8787}"
 
+# Same query string as Settings → Copy invite link (contributor=1 + coordinator + localInference).
+colyni_invite_url() {
+  local ui_port="${1:?ui port}"
+  python3 -c "
+from urllib.parse import urlencode
+base = 'http://${LAN_IP}:${ui_port}/'
+q = urlencode({
+    'contributor': '1',
+    'coordinator': 'http://${LAN_IP}:${COLYNI_BACKEND_PORT}',
+    'localInference': 'http://127.0.0.1:52415',
+})
+print(base + '?' + q)
+"
+}
+
 cd "$ROOT/backend"
 # shellcheck source=/dev/null
 source .venv/bin/activate
@@ -82,15 +97,31 @@ fi
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo " Colyni coordinator — share these URLs on the same Wi‑Fi"
+echo " Colyni coordinator — same Wi‑Fi (LAN)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  Cluster UI (built React):  http://${LAN_IP}:52415"
-echo "  Colyni API (ledger/proxy):  http://${LAN_IP}:${COLYNI_BACKEND_PORT}"
+if [[ "$LAN_IP" == "127.0.0.1" ]]; then
+  echo "  ⚠ LAN IP not detected — URLs below use loopback. Set a real IP, e.g.:"
+  echo "      LAN_IP=192.168.x.x $0   (or export LAN_IP before running)"
+  echo ""
+fi
+echo "  On this Mac only (localhost):"
+echo "    Cluster UI:   http://127.0.0.1:52415"
+echo "    Colyni API:   http://127.0.0.1:${COLYNI_BACKEND_PORT}"
+echo ""
+echo "  On phones / other laptops — use LAN IP (${LAN_IP}):"
+echo "    Cluster UI:   http://${LAN_IP}:52415"
+echo "    Colyni API:   http://${LAN_IP}:${COLYNI_BACKEND_PORT}"
 if [[ "${WITH_VITE:-}" == "1" ]]; then
-  echo "  Vite (hot reload UI):       http://${LAN_IP}:5173"
+  echo "    Vite (dev):   http://${LAN_IP}:5173"
 fi
 echo ""
-echo "  Contributors: Settings → Contributor → Coordinator API →"
+echo "  One-click invite (guests open in browser — contributor + API prefilled):"
+echo "    $(colyni_invite_url 52415)"
+if [[ "${WITH_VITE:-}" == "1" ]]; then
+  echo "    $(colyni_invite_url 5173)"
+fi
+echo ""
+echo "  Contributors (manual): Settings → Contributor → Coordinator API →"
 echo "    http://${LAN_IP}:${COLYNI_BACKEND_PORT}"
 echo ""
 echo "  Stop: Ctrl+C"

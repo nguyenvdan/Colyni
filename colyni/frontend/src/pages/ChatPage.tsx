@@ -3,6 +3,7 @@ import { Bot, User } from 'lucide-react'
 
 import { AIChatInput } from '@/components/ui/ai-chat-input'
 import { useFavoriteModelIds } from '@/hooks/use-favorite-model-ids'
+import { formatChatApiError } from '@/lib/chat-errors'
 import { apiUrl } from '@/lib/api'
 import { GlowCard } from '@/components/ui/glow-card'
 
@@ -131,7 +132,8 @@ export function ChatPage({ nodeId }: ChatPageProps) {
         return
       }
       if (!r.ok) {
-        setError((await r.text()) || r.statusText)
+        const raw = await r.text()
+        setError(formatChatApiError(r.status, raw))
         setLoading(false)
         return
       }

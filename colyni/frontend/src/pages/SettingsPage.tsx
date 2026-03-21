@@ -1,8 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, Copy, Link2, Loader2, Server, Star, Users } from 'lucide-react'
+import {
+  Activity,
+  CheckCircle2,
+  Copy,
+  Link2,
+  Loader2,
+  Radio,
+  Server,
+  Star,
+  Users,
+} from 'lucide-react'
 
 import { GlowCard } from '@/components/ui/glow-card'
 import { apiUrl } from '@/lib/api'
+import { formatAgo, useLedgerHealth } from '@/hooks/use-ledger-health'
 import { useMachineRole } from '@/hooks/use-machine-role'
 import { useFavoriteModelIds } from '@/hooks/use-favorite-model-ids'
 import {
@@ -13,6 +24,7 @@ import {
   setMachineRole,
   type MachineRole,
 } from '@/lib/machine-role'
+import { copyTextToClipboard } from '@/lib/copy-to-clipboard'
 import { buildInviteLink } from '@/lib/invite-link'
 import { toggleFavoriteModelId } from '@/lib/favorite-models'
 import { cn } from '@/lib/utils'
@@ -26,6 +38,7 @@ type SettingsPageProps = {
 
 export function SettingsPage({ nodeId, onNodeIdChange }: SettingsPageProps) {
   const snap = useMachineRole()
+  const ledgerHealth = useLedgerHealth()
   const favoriteIds = useFavoriteModelIds()
   const favoriteSet = useMemo(() => new Set(favoriteIds), [favoriteIds])
 
@@ -35,6 +48,9 @@ export function SettingsPage({ nodeId, onNodeIdChange }: SettingsPageProps) {
   const [testBusy, setTestBusy] = useState(false)
   const [testMsg, setTestMsg] = useState<string | null>(null)
   const [inviteCopied, setInviteCopied] = useState(false)
+  const [inviteCopyError, setInviteCopyError] = useState<string | null>(null)
+  const [hbBusy, setHbBusy] = useState(false)
+  const [hbMsg, setHbMsg] = useState<string | null>(null)
 
   useEffect(() => {
     setDraftRole(snap.role)
@@ -58,6 +74,34 @@ export function SettingsPage({ nodeId, onNodeIdChange }: SettingsPageProps) {
     setTestMsg(null)
   }, [draftCoord, draftLocal, draftRole])
 
+  const sendTestHeartbeat = useCallback(async () => {
+    if (!nodeId.trim()) {
+      setHbMsg('Set a node id first (we use it for the ledger).')
+      return
+    }
+    setHbBusy(true)
+    setHbMsg(null)
+    try {
+      const r = await fetch(apiUrl('/api/nodes/heartbeat'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ node_id: nodeId.trim() }),
+      })
+      if (r.ok) {
+        setHbMsg(
+          'Heartbeat accepted — the host should list this laptop under Contribute → App connections within ~30s.',
+        )
+      } else {
+        const t = await r.text()
+        setHbMsg(t || `HTTP ${r.status}`)
+      }
+    } catch (e) {
+      setHbMsg(e instanceof Error ? e.message : 'Request failed')
+    } finally {
+      setHbBusy(false)
+    }
+  }, [nodeId])
+
   const testCoordinator = useCallback(async () => {
     const base = parseCoordinatorApiUrl(draftCoord)
     if (!base) {
@@ -69,7 +113,7 @@ export function SettingsPage({ nodeId, onNodeIdChange }: SettingsPageProps) {
     try {
       const r = await fetch(`${base}/api/cluster/state`)
       if (r.ok) {
-        setTestMsg('Connected — coordinator API responded.')
+        setTestMsg('Connected — coordinator Colyni API responded (cluster snapshot).')
       } else {
         setTestMsg(`Reachable but error: HTTP ${r.status}`)
       }
@@ -147,6 +191,143 @@ export function SettingsPage({ nodeId, onNodeIdChange }: SettingsPageProps) {
           Choose how this laptop connects to the cluster, then pick favorite models for Chat.
         </p>
       </header>
+
+      {/* Live Colyni API status (port 8787) — separate from exo mesh on :52415 */}
+      <GlowCard className="animate-fade-up" innerClassName="p-5">
+        <div className="flex flex-wrap items-start gap-3">
+          <div
+            className={cn(
+              'mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg',
+              ledgerHealth.ok === true
+                ? 'bg-cy-green-light text-cy-green'
+                : ledgerHealth.ok === false
+                  ? 'bg-cy-error-light text-cy-error'
+                  : 'bg-cy-inset text-cy-muted',
+            )}
+            aria-hidden
+          >
+            {ledgerHealth.checking ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Radio className="size-4" />
+            )}
+          </div>
+          <div className="min-w-0 flex-1 space-y-1">
+            <h2 className="text-[14px] font-medium text-cy-text">Colyni API (ledger)</h2>
+            <p className="text-[12px] leading-relaxed text-cy-secondary">
+              {snap.role === 'coordinator' ? (
+                <>
+                  This app talks to the Colyni backend on <span className="font-mono">8787</span>{' '}
+                  (credits, heartbeats, chat proxy). That is{' '}
+                  <strong className="font-medium text-cy-text">not</strong> the same process as the
+                  GPU mesh on <span className="font-mono">52415</span> — exo can look healthy while
+                  the API here is down or blocked.
+                </>
+              ) : snap.coordinatorApiUrl.trim() ? (
+                <>
+                  Pings the host you saved (
+                  <span className="break-all font-mono text-[11px] text-cy-text">
+                    {snap.coordinatorApiUrl.replace(/\/$/, '')}
+                  </span>
+                  ). If this stays red, fix CORS on the host or confirm{' '}
+                  <span className="font-mono text-[11px]">demo-coordinator.sh</span> is running — the
+                  mesh on :52415 can still work without this.
+                </>
+              ) : (
+                <>
+                  Set coordinator URL below and <strong className="text-cy-text">Save connection</strong>{' '}
+                  to monitor reachability.
+                </>
+              )}
+            </p>
+            {snap.role === 'contributor' && snap.coordinatorApiUrl.trim() ? (
+              <div className="flex flex-wrap items-center gap-2 pt-1 text-[12px]">
+                {ledgerHealth.ok === true && ledgerHealth.lastOkAt != null && (
+                  <span className="inline-flex items-center gap-1.5 text-cy-green-dark">
+                    <Activity className="size-3.5" aria-hidden />
+                    OK
+                    {ledgerHealth.latencyMs != null && (
+                      <span className="tabular-nums text-cy-secondary">
+                        · {ledgerHealth.latencyMs} ms
+                      </span>
+                    )}
+                    <span className="text-cy-muted">· checked {formatAgo(ledgerHealth.lastOkAt)}</span>
+                  </span>
+                )}
+                {ledgerHealth.ok === false && (
+                  <span className="text-cy-error">
+                    Unreachable — {ledgerHealth.lastError ?? 'unknown error'}
+                  </span>
+                )}
+                {ledgerHealth.ok === null && !ledgerHealth.checking && (
+                  <span className="text-cy-muted">Waiting for first check…</span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => void ledgerHealth.refresh()}
+                  className="rounded-md border border-cy-border px-2 py-0.5 text-[11px] font-medium text-cy-secondary hover:bg-cy-inset"
+                >
+                  Refresh now
+                </button>
+              </div>
+            ) : snap.role === 'coordinator' ? (
+              <div className="flex flex-wrap items-center gap-2 pt-1 text-[12px]">
+                {ledgerHealth.ok === true && ledgerHealth.lastOkAt != null && (
+                  <span className="inline-flex items-center gap-1.5 text-cy-green-dark">
+                    <Activity className="size-3.5" aria-hidden />
+                    Local backend reachable
+                    {ledgerHealth.latencyMs != null && (
+                      <span className="tabular-nums text-cy-secondary">
+                        · {ledgerHealth.latencyMs} ms
+                      </span>
+                    )}
+                    <span className="text-cy-muted">· {formatAgo(ledgerHealth.lastOkAt)}</span>
+                  </span>
+                )}
+                {ledgerHealth.ok === false && (
+                  <span className="text-cy-error">
+                    Not reachable — {ledgerHealth.lastError ?? 'unknown error'}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => void ledgerHealth.refresh()}
+                  className="rounded-md border border-cy-border px-2 py-0.5 text-[11px] font-medium text-cy-secondary hover:bg-cy-inset"
+                >
+                  Refresh now
+                </button>
+              </div>
+            ) : null}
+
+            {snap.role === 'contributor' && snap.coordinatorApiUrl.trim() && (
+              <div className="mt-3 border-t border-cy-border pt-3">
+                <p className="text-[11px] leading-relaxed text-cy-muted">
+                  <span className="font-medium text-cy-text">Appear on the host&apos;s list:</span>{' '}
+                  Chat sends heartbeats automatically, or use a one-off test (needs node id).
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void sendTestHeartbeat()}
+                    disabled={hbBusy || !nodeId.trim()}
+                    className="inline-flex items-center gap-2 rounded-lg border border-cy-border bg-cy-surface px-3 py-1.5 text-[12px] font-medium text-cy-text transition hover:bg-cy-inset disabled:opacity-50"
+                  >
+                    {hbBusy ? (
+                      <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                    ) : (
+                      <Radio className="size-3.5 text-cy-green" aria-hidden />
+                    )}
+                    Send test heartbeat
+                  </button>
+                  {hbMsg && (
+                    <span className="text-[11px] leading-snug text-cy-secondary">{hbMsg}</span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </GlowCard>
 
       {/* Machine role */}
       <GlowCard className="animate-fade-up delay-75" innerClassName="p-6">
@@ -355,11 +536,20 @@ export function SettingsPage({ nodeId, onNodeIdChange }: SettingsPageProps) {
             <button
               type="button"
               onClick={() => {
-                const { url, warning } = buildInviteLink()
-                if (warning || !url) return
-                void navigator.clipboard.writeText(url)
-                setInviteCopied(true)
-                window.setTimeout(() => setInviteCopied(false), 2000)
+                void (async () => {
+                  const { url, warning } = buildInviteLink()
+                  setInviteCopyError(null)
+                  if (warning || !url) return
+                  const ok = await copyTextToClipboard(url)
+                  if (ok) {
+                    setInviteCopied(true)
+                    window.setTimeout(() => setInviteCopied(false), 2000)
+                  } else {
+                    setInviteCopyError(
+                      'Could not use the clipboard on this page. Select the URL above and copy manually (⌘C / Ctrl+C).',
+                    )
+                  }
+                })()
               }}
               className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-cy-green px-4 py-2.5 text-[13px] font-medium text-cy-bg transition hover:opacity-90"
             >
@@ -376,6 +566,11 @@ export function SettingsPage({ nodeId, onNodeIdChange }: SettingsPageProps) {
               )}
             </button>
           </div>
+          {inviteCopyError && (
+            <p className="mt-2 text-[12px] text-cy-error" role="alert">
+              {inviteCopyError}
+            </p>
+          )}
         </GlowCard>
       )}
 

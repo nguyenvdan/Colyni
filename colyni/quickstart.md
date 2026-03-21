@@ -168,5 +168,7 @@ Then all API calls go to Mac 1’s Colyni backend without relying on Vite’s de
 - **“Cluster unreachable”** — Inference API not running, wrong `INFERENCE_BASE_URL`, or firewall blocking exo.
 - **CORS errors from Mac 2/3** — Add their origin (`http://HOST_IP:5173`) to `CORS_ORIGINS` on Mac 1 and restart the backend.
 - **Can’t open UI from other Macs** — Use `--host` for Vite and `0.0.0.0` for uvicorn; confirm `HOST_IP` is correct.
+- **Guest laptop not listed under “App connections (ledger)” on Mac 1** — The invite link only configures the browser; it does not register the machine by itself. On each guest: run `demo-contributor.sh`, open the invite link (or set Coordinator API to `http://<Mac_1_LAN>:8787`), **Save** in Settings, then open **Chat** once so heartbeats reach Mac 1’s API. That list is separate from the inference **Cluster** card (mesh peers can take time to show both ways).
+- **`No instance found for model …` (HTTP 404 on chat)** — The model id appears in `/v1/models` but nothing is **running** as a placed instance yet. Open the cluster UI on **:52415**, download/place the model until it shows as running, then try Chat again — or pick a favorite that already has an instance.
 
 For exo-specific discovery and multi-GPU issues, use the exo project’s issues and docs.
