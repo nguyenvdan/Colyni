@@ -155,7 +155,7 @@ export function ChatPage({ nodeId }: ChatPageProps) {
   }
 
   return (
-    <div className="mx-auto flex h-[calc(100svh-160px)] max-w-3xl flex-col">
+    <div className="mx-auto flex h-[calc(100svh-11rem)] max-w-3xl flex-col sm:h-[calc(100svh-160px)]">
       {/* Balance badge */}
       <div className="mb-4 flex items-center justify-end">
         <div className="flex items-center gap-1.5 rounded-full border border-cy-green/20 bg-cy-green-light px-3 py-1">
@@ -241,8 +241,8 @@ export function ChatPage({ nodeId }: ChatPageProps) {
         )}
       </div>
 
-      {/* Input */}
-      <div className="pt-2">
+      {/* Input — keep above fixed bottom nav / overlays */}
+      <div className="relative z-10 pt-2">
         <AIChatInput
           onSend={sendChat}
           disabled={loading}

@@ -53,6 +53,15 @@
   #root {
     min-height: 100svh;
   }
+
+  /* Fewer missed taps on mobile; avoids legacy 300ms click delay */
+  button,
+  [role='button'],
+  a[href],
+  input[type='checkbox'],
+  input[type='radio'] {
+    touch-action: manipulation;
+  }
 }
 
 @layer utilities {

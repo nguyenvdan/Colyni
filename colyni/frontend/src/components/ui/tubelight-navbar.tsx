@@ -23,7 +23,7 @@ export function NavBar({ items, activeTab, onTabChange, className }: NavBarProps
   return (
     <div
       className={cn(
-        'fixed bottom-0 left-1/2 z-50 mb-6 -translate-x-1/2 sm:top-0 sm:pt-6',
+        'fixed bottom-0 left-1/2 z-[60] mb-6 max-w-[calc(100vw-1.5rem)] -translate-x-1/2 touch-manipulation sm:top-0 sm:pt-6',
         className,
       )}
     >
@@ -38,7 +38,7 @@ export function NavBar({ items, activeTab, onTabChange, className }: NavBarProps
               type="button"
               onClick={() => onTabChange(item.id)}
               className={cn(
-                'relative cursor-pointer rounded-full px-5 py-2 text-sm font-semibold transition-colors',
+                'relative min-h-[44px] min-w-[44px] cursor-pointer rounded-full px-4 py-2 text-sm font-semibold transition-colors md:min-h-0 md:min-w-0 md:px-5',
                 'text-cy-secondary hover:text-cy-text',
                 isActive && 'text-cy-text',
               )}
@@ -74,7 +74,7 @@ export function NavBar({ items, activeTab, onTabChange, className }: NavBarProps
         <button
           type="button"
           onClick={toggle}
-          className="flex cursor-pointer items-center justify-center rounded-full p-2 text-cy-secondary transition-colors hover:text-cy-text"
+          className="flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center rounded-full p-2 text-cy-secondary transition-colors hover:text-cy-text md:min-h-0 md:min-w-0"
           title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
         >
           {theme === 'light' ? (

@@ -114,7 +114,7 @@ export default function App() {
           />
         )}
         {tab === 'chat' && (
-          <div className="mx-auto max-w-[1100px] px-6 pb-28 pt-10 md:px-12">
+          <div className="mx-auto max-w-[1100px] px-6 pb-[max(10rem,env(safe-area-inset-bottom)+7rem)] pt-10 md:px-12 sm:pb-32">
             <ChatPage
               nodeId={nodeId}
               onNodeIdChange={persistNodeId}
@@ -124,19 +124,19 @@ export default function App() {
           </div>
         )}
         {tab === 'contribute' && (
-          <div className="mx-auto max-w-[1100px] px-6 pb-28 pt-10 md:px-12">
+          <div className="mx-auto max-w-[1100px] px-6 pb-[max(10rem,env(safe-area-inset-bottom)+7rem)] pt-10 md:px-12 sm:pb-32">
             <ContributePage />
           </div>
         )}
         {tab === 'settings' && (
-          <div className="mx-auto max-w-[1100px] px-6 pb-28 pt-10 md:px-12">
+          <div className="mx-auto max-w-[1100px] px-6 pb-[max(10rem,env(safe-area-inset-bottom)+7rem)] pt-10 md:px-12 sm:pb-32">
             <SettingsPage nodeId={nodeId} onNodeIdChange={persistNodeId} />
           </div>
         )}
       </main>
 
-      {/* spacer for mobile bottom nav */}
-      <div className="h-20 sm:hidden" />
+      {/* Extra scroll room so content clears the fixed bottom nav on phones */}
+      <div className="h-24 shrink-0 sm:hidden" aria-hidden />
     </div>
   )
 }

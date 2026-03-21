@@ -40,6 +40,8 @@ Then in the Colyni app: **Settings → Contributor** → Coordinator API = `http
 
 **Seamless option:** On Mac 1, open the app using your **LAN IP** (e.g. `http://192.168.x.x:52415`), go to **Settings → Invite a teammate**, and **Copy invite link**. Send that URL to Mac 2 — opening it in a browser sets contributor mode and the coordinator API automatically (no manual URL fields).
 
+**Tokens (demo):** `./scripts/demo-coordinator.sh` sets **`COLYNI_DEMO_FREE_CHAT=1`** so chat does not deduct tokens; contributors still earn from inference. For a manual backend, add `COLYNI_DEMO_FREE_CHAT=1` to `backend/.env` and restart uvicorn.
+
 ---
 
 ## Before you start

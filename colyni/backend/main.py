@@ -50,6 +50,14 @@ DATABASE_PATH = Path(
 )
 
 
+def _env_truthy(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in ("1", "true", "yes", "on")
+
+
+# When True, chat does not deduct tokens; contributors still earn from inference traces.
+COLYNI_DEMO_FREE_CHAT = _env_truthy("COLYNI_DEMO_FREE_CHAT")
+
+
 class HeartbeatBody(BaseModel):
     node_id: str = Field(min_length=1)
     label: str | None = None
@@ -288,11 +296,12 @@ async def proxy_chat_completions(
     except json.JSONDecodeError as e:
         raise HTTPException(400, f"Invalid JSON: {e}") from e
 
-    if not await try_spend_chat(db(), x_colyni_node, None):
-        raise HTTPException(
-            status_code=402,
-            detail=f"Insufficient balance (need {CHAT_COST} Colyni tokens for one chat).",
-        )
+    if not COLYNI_DEMO_FREE_CHAT:
+        if not await try_spend_chat(db(), x_colyni_node, None):
+            raise HTTPException(
+                status_code=402,
+                detail=f"Insufficient balance (need {CHAT_COST} Colyni tokens for one chat).",
+            )
 
     url = f"{INFERENCE_BASE_URL}/v1/chat/completions"
     headers = {
@@ -343,9 +352,10 @@ async def proxy_chat_completions(
 
 
 @app.get("/api/config")
-async def get_config() -> dict[str, int | str]:
+async def get_config() -> dict[str, int | str | bool]:
     return {
         "inference_base_url": INFERENCE_BASE_URL,
         "chat_cost": CHAT_COST,
         "earn_pool_per_request": EARN_POOL,
+        "demo_free_chat": COLYNI_DEMO_FREE_CHAT,
     }

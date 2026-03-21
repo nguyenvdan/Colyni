@@ -66,8 +66,9 @@ export function AIChatInput({
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    // Use "click" so button/target handlers run before we treat it as an outside press.
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
   }, [inputValue])
 
   const handleActivate = () => setIsActive(true)
@@ -143,10 +144,16 @@ export function AIChatInput({
           overflow: modelDropdownOpen ? 'visible' : 'hidden',
           borderRadius: 14,
         }}
-        onClick={handleActivate}
       >
         <div className="flex h-full w-full flex-col items-stretch rounded-[14px] border border-cy-border bg-cy-surface shadow-sm transition-shadow focus-within:shadow-md">
-          <div className="flex w-full items-center gap-1.5 px-3 py-2.5">
+          <div
+            className="flex w-full items-center gap-1.5 px-3 py-2.5"
+            onClick={(e) => {
+              const t = e.target as HTMLElement
+              if (t.closest('button')) return
+              handleActivate()
+            }}
+          >
             {/* Attach */}
             <button
               className="rounded-lg p-2 text-cy-muted transition hover:bg-cy-inset hover:text-cy-secondary"

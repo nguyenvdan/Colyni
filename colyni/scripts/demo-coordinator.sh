@@ -44,6 +44,9 @@ set -a
 [[ -f .env ]] && source .env
 set +a
 
+# Hackathon default: chat without spending tokens; earnings unchanged. Override with COLYNI_DEMO_FREE_CHAT=0
+export COLYNI_DEMO_FREE_CHAT="${COLYNI_DEMO_FREE_CHAT:-1}"
+
 # Widen CORS for phones / other laptops on the same Wi‑Fi (override .env for this shell only).
 if [[ "${COLYNI_DEMO_LAN:-1}" == "1" ]]; then
   export CORS_ORIGINS="http://localhost:5173,http://127.0.0.1:5173,http://${LAN_IP}:5173,http://localhost:52415,http://127.0.0.1:52415,http://${LAN_IP}:52415"
