@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Home, MessageSquare, Cpu, Settings } from 'lucide-react'
 
+import { RoleBanner } from '@/components/role-banner'
 import { apiUrl } from '@/lib/api'
+import { useMachineRole } from '@/hooks/use-machine-role'
 import { NavBar, type NavItem } from '@/components/ui/tubelight-navbar'
 import { ChatPage } from '@/pages/ChatPage'
 import { ContributePage } from '@/pages/ContributePage'
@@ -21,6 +23,7 @@ const NAV_ITEMS: NavItem[] = [
 ]
 
 export default function App() {
+  const machine = useMachineRole()
   const [tab, setTab] = useState<AppTab>('home')
   const [nodeId, setNodeId] = useState(
     () => localStorage.getItem(STORAGE_NODE) ?? '',
@@ -40,9 +43,18 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (nodeId) return
     void (async () => {
       try {
+        if (machine.role === 'contributor') {
+          const base = machine.localInferenceUrl.replace(/\/$/, '')
+          const r = await fetch(`${base}/node_id`)
+          if (r.ok) {
+            const text = await r.text()
+            const id = text.trim().replace(/^"|"$/g, '')
+            if (id) persistNodeId(id)
+          }
+          return
+        }
         const r = await fetch(apiUrl('/api/cluster/self-id'))
         if (!r.ok) return
         const text = await r.text()
@@ -52,7 +64,7 @@ export default function App() {
         /* cluster not running yet */
       }
     })()
-  }, [nodeId, persistNodeId])
+  }, [machine.role, machine.coordinatorApiUrl, machine.localInferenceUrl, persistNodeId])
 
   return (
     <div className="min-h-svh bg-cy-bg font-sans text-cy-text antialiased">
@@ -66,6 +78,7 @@ export default function App() {
       <div className="hidden h-20 sm:block" />
 
       <main>
+        {tab !== 'home' && <RoleBanner />}
         {tab === 'home' && (
           <HomePage
             onGoChat={() => setTab('chat')}
@@ -89,7 +102,7 @@ export default function App() {
         )}
         {tab === 'settings' && (
           <div className="mx-auto max-w-[1100px] px-6 pb-28 pt-10 md:px-12">
-            <SettingsPage />
+            <SettingsPage nodeId={nodeId} onNodeIdChange={persistNodeId} />
           </div>
         )}
       </main>

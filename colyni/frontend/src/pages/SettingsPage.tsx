@@ -1,51 +1,130 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Loader2, Star } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { CheckCircle2, Loader2, Server, Star, Users } from 'lucide-react'
 
 import { GlowCard } from '@/components/ui/glow-card'
 import { apiUrl } from '@/lib/api'
-import { toggleFavoriteModelId } from '@/lib/favorite-models'
+import { useMachineRole } from '@/hooks/use-machine-role'
 import { useFavoriteModelIds } from '@/hooks/use-favorite-model-ids'
+import {
+  getMachineRole,
+  parseCoordinatorApiUrl,
+  setCoordinatorApiUrl,
+  setLocalInferenceUrl,
+  setMachineRole,
+  type MachineRole,
+} from '@/lib/machine-role'
+import { toggleFavoriteModelId } from '@/lib/favorite-models'
 import { cn } from '@/lib/utils'
 
 type CatalogModel = { id: string; name?: string; family?: string }
 
-export function SettingsPage() {
+type SettingsPageProps = {
+  nodeId: string
+  onNodeIdChange: (id: string) => void
+}
+
+export function SettingsPage({ nodeId, onNodeIdChange }: SettingsPageProps) {
+  const snap = useMachineRole()
   const favoriteIds = useFavoriteModelIds()
   const favoriteSet = useMemo(() => new Set(favoriteIds), [favoriteIds])
+
+  const [draftRole, setDraftRole] = useState<MachineRole>(() => getMachineRole())
+  const [draftCoord, setDraftCoord] = useState(snap.coordinatorApiUrl)
+  const [draftLocal, setDraftLocal] = useState(snap.localInferenceUrl)
+  const [testBusy, setTestBusy] = useState(false)
+  const [testMsg, setTestMsg] = useState<string | null>(null)
+
+  useEffect(() => {
+    setDraftRole(snap.role)
+    setDraftCoord(snap.coordinatorApiUrl)
+    setDraftLocal(snap.localInferenceUrl)
+  }, [snap.role, snap.coordinatorApiUrl, snap.localInferenceUrl])
+
+  const applyConnection = useCallback(() => {
+    const normalizedCoord = parseCoordinatorApiUrl(draftCoord)
+    if (draftRole === 'contributor' && !normalizedCoord) {
+      setTestMsg('Set a valid coordinator URL (e.g. http://192.168.x.x:8787).')
+      return
+    }
+    const localNorm =
+      parseCoordinatorApiUrl(draftLocal) ||
+      draftLocal.trim().replace(/\/$/, '') ||
+      'http://127.0.0.1:52415'
+    setLocalInferenceUrl(localNorm)
+    setCoordinatorApiUrl(normalizedCoord)
+    setMachineRole(draftRole)
+    setTestMsg(null)
+  }, [draftCoord, draftLocal, draftRole])
+
+  const testCoordinator = useCallback(async () => {
+    const base = parseCoordinatorApiUrl(draftCoord)
+    if (!base) {
+      setTestMsg('Enter a valid URL first.')
+      return
+    }
+    setTestBusy(true)
+    setTestMsg(null)
+    try {
+      const r = await fetch(`${base}/api/cluster/state`)
+      if (r.ok) {
+        setTestMsg('Connected — coordinator API responded.')
+      } else {
+        setTestMsg(`Reachable but error: HTTP ${r.status}`)
+      }
+    } catch (e) {
+      setTestMsg(e instanceof Error ? e.message : 'Could not reach host (CORS or network).')
+    } finally {
+      setTestBusy(false)
+    }
+  }, [draftCoord])
+
+  const fetchLocalNodeId = useCallback(async () => {
+    const base = (parseCoordinatorApiUrl(draftLocal) || draftLocal.trim()).replace(/\/$/, '')
+    if (!base) return
+    try {
+      const r = await fetch(`${base}/node_id`)
+      if (!r.ok) return
+      const text = await r.text()
+      const id = text.trim().replace(/^"|"$/g, '')
+      if (id) onNodeIdChange(id)
+    } catch {
+      /* ignore */
+    }
+  }, [draftLocal, onNodeIdChange])
 
   const [catalog, setCatalog] = useState<CatalogModel[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
 
-  useEffect(() => {
-    let cancelled = false
-    void (async () => {
-      setLoading(true)
-      setLoadError(null)
-      try {
-        const r = await fetch(apiUrl('/api/models'))
-        if (!r.ok) {
-          if (!cancelled) setLoadError(`Could not load models (${r.status})`)
-          return
-        }
-        const body = (await r.json()) as { data?: CatalogModel[] }
-        const rows = (body.data ?? []).map((m) => ({
-          id: String(m.id),
-          name: m.name ? String(m.name) : undefined,
-          family: m.family ? String(m.family) : undefined,
-        }))
-        if (!cancelled) setCatalog(rows)
-      } catch (e) {
-        if (!cancelled) setLoadError(e instanceof Error ? e.message : 'Request failed')
-      } finally {
-        if (!cancelled) setLoading(false)
+  const reloadCatalog = useCallback(async () => {
+    setLoading(true)
+    setLoadError(null)
+    try {
+      const r = await fetch(apiUrl('/api/models'))
+      if (!r.ok) {
+        setLoadError(`Could not load models (${r.status})`)
+        setCatalog([])
+        return
       }
-    })()
-    return () => {
-      cancelled = true
+      const body = (await r.json()) as { data?: CatalogModel[] }
+      const rows = (body.data ?? []).map((m) => ({
+        id: String(m.id),
+        name: m.name ? String(m.name) : undefined,
+        family: m.family ? String(m.family) : undefined,
+      }))
+      setCatalog(rows)
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : 'Request failed')
+      setCatalog([])
+    } finally {
+      setLoading(false)
     }
   }, [])
+
+  useEffect(() => {
+    void reloadCatalog()
+  }, [reloadCatalog, snap.role, snap.coordinatorApiUrl])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -63,11 +142,182 @@ export function SettingsPage() {
       <header className="animate-fade-up">
         <h1 className="text-[22px] font-semibold tracking-tight text-cy-text">Settings</h1>
         <p className="mt-1 max-w-lg text-[14px] text-cy-secondary">
-          Star models to add them to your favorites. The Chat tab model menu only lists those
-          favorites.
+          Choose how this laptop connects to the cluster, then pick favorite models for Chat.
         </p>
       </header>
 
+      {/* Machine role */}
+      <GlowCard className="animate-fade-up delay-75" innerClassName="p-6">
+        <h2 className="text-[15px] font-medium text-cy-text">This Mac&apos;s role</h2>
+        <p className="mt-1 text-[13px] text-cy-secondary">
+          Switch any time — both you and Dan can use the same build; only the connection settings
+          change.
+        </p>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => setDraftRole('coordinator')}
+            className={cn(
+              'rounded-xl border p-4 text-left transition-colors',
+              draftRole === 'coordinator'
+                ? 'border-cy-green/50 bg-cy-green-light/70'
+                : 'border-cy-border bg-cy-surface hover:border-cy-green/25',
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <Server className="size-5 text-cy-green" strokeWidth={1.75} />
+              <span className="text-[14px] font-semibold text-cy-text">Runs the LLM here</span>
+            </div>
+            <p className="mt-2 text-[12px] leading-relaxed text-cy-secondary">
+              This Mac runs <span className="font-mono">colyni-cluster</span> and the Colyni backend.
+              Use the normal dev commands on this machine.
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setDraftRole('contributor')}
+            className={cn(
+              'rounded-xl border p-4 text-left transition-colors',
+              draftRole === 'contributor'
+                ? 'border-cy-green/50 bg-cy-green-light/70'
+                : 'border-cy-border bg-cy-surface hover:border-cy-green/25',
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <Users className="size-5 text-cy-green" strokeWidth={1.75} />
+              <span className="text-[14px] font-semibold text-cy-text">Contributor</span>
+            </div>
+            <p className="mt-2 text-[12px] leading-relaxed text-cy-secondary">
+              Chat uses someone else&apos;s Colyni API. You still run a local worker so this laptop
+              can join the cluster and earn credits.
+            </p>
+          </button>
+        </div>
+
+        {draftRole === 'contributor' && (
+          <div className="mt-6 space-y-4 rounded-xl border border-cy-border bg-cy-inset/80 p-4">
+            <div>
+              <label className="text-[11px] font-medium uppercase tracking-wider text-cy-muted">
+                Coordinator Colyni API
+              </label>
+              <p className="mt-0.5 text-[12px] text-cy-muted">
+                The other person&apos;s backend URL (port <span className="font-mono">8787</span>).
+                They must add your browser origin to <span className="font-mono">CORS_ORIGINS</span>{' '}
+                on their Mac.
+              </p>
+              <input
+                type="url"
+                value={draftCoord}
+                onChange={(e) => setDraftCoord(e.target.value)}
+                placeholder="http://192.168.1.10:8787"
+                className="mt-2 w-full rounded-lg border border-cy-border bg-cy-surface px-3 py-2.5 font-mono text-[13px] text-cy-text placeholder:text-cy-muted focus:border-cy-green/40 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-medium uppercase tracking-wider text-cy-muted">
+                Your worker on this Mac
+              </label>
+              <p className="mt-0.5 text-[12px] text-cy-muted">
+                Where <span className="font-mono">colyni-cluster</span> listens on this laptop (for
+                your node id). Usually <span className="font-mono">http://127.0.0.1:52415</span>.
+              </p>
+              <input
+                type="url"
+                value={draftLocal}
+                onChange={(e) => setDraftLocal(e.target.value)}
+                placeholder="http://127.0.0.1:52415"
+                className="mt-2 w-full rounded-lg border border-cy-border bg-cy-surface px-3 py-2.5 font-mono text-[13px] text-cy-text placeholder:text-cy-muted focus:border-cy-green/40 focus:outline-none"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void testCoordinator()}
+                disabled={testBusy}
+                className="inline-flex items-center gap-2 rounded-lg border border-cy-border bg-cy-surface px-3 py-2 text-[13px] font-medium text-cy-text transition hover:bg-cy-inset disabled:opacity-50"
+              >
+                {testBusy ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                ) : (
+                  <CheckCircle2 className="size-4 text-cy-green" aria-hidden />
+                )}
+                Test coordinator connection
+              </button>
+              {testMsg && (
+                <span className="text-[12px] text-cy-secondary">{testMsg}</span>
+              )}
+            </div>
+
+            <div>
+              <label className="text-[11px] font-medium uppercase tracking-wider text-cy-muted">
+                Your node id (this Mac)
+              </label>
+              <p className="mt-0.5 text-[12px] text-cy-muted">
+                Used for credits and heartbeats. We try to read it from your local worker.
+              </p>
+              <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <input
+                  type="text"
+                  value={nodeId}
+                  onChange={(e) => onNodeIdChange(e.target.value)}
+                  placeholder="paste if auto-detect fails"
+                  className="min-w-0 flex-1 rounded-lg border border-cy-border bg-cy-surface px-3 py-2.5 font-mono text-[12px] text-cy-text placeholder:text-cy-muted focus:border-cy-green/40 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => void fetchLocalNodeId()}
+                  className="shrink-0 rounded-lg bg-cy-green px-3 py-2.5 text-[13px] font-medium text-cy-bg transition hover:opacity-90"
+                >
+                  Refresh from local worker
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {draftRole === 'coordinator' && (
+          <details className="mt-5 rounded-xl border border-cy-border bg-cy-inset/50 px-4 py-3 text-[13px] text-cy-secondary">
+            <summary className="cursor-pointer font-medium text-cy-text">Terminal (this Mac)</summary>
+            <p className="mt-2 text-[12px] leading-relaxed">
+              Run inference (see <span className="font-mono">colyni/inference/README.md</span>), build
+              the UI with <span className="font-mono">./scripts/build-cluster-ui.sh</span>, then start
+              the Colyni backend on <span className="font-mono">0.0.0.0:8787</span> so friends can
+              reach you on the LAN. Details in <span className="font-mono">colyni/quickstart.md</span>.
+            </p>
+          </details>
+        )}
+
+        {draftRole === 'contributor' && (
+          <details className="mt-4 rounded-xl border border-cy-border bg-cy-inset/50 px-4 py-3 text-[13px] text-cy-secondary">
+            <summary className="cursor-pointer font-medium text-cy-text">Terminal (this Mac)</summary>
+            <p className="mt-2 text-[12px] leading-relaxed">
+              Start <span className="font-mono">colyni-cluster</span> here in worker / peer mode so
+              you join the same network cluster as the host. Exact flags are in{' '}
+              <span className="font-mono">inference/README.md</span>. Keep Wi‑Fi the same and firewall
+              open for cluster ports.
+            </p>
+          </details>
+        )}
+
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={applyConnection}
+            className="rounded-lg bg-cy-green px-4 py-2.5 text-[13px] font-medium text-cy-bg transition hover:opacity-90"
+          >
+            Save connection
+          </button>
+          <span className="text-[12px] text-cy-muted">
+            Saves to this browser only (not synced across devices).
+          </span>
+        </div>
+      </GlowCard>
+
+      {/* Favorites */}
       <GlowCard className="animate-fade-up delay-100" innerClassName="p-6">
         <div className="mb-1 flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cy-inset">
@@ -76,7 +326,7 @@ export function SettingsPage() {
           <div>
             <h2 className="text-[15px] font-medium text-cy-text">Favorite models</h2>
             <p className="mt-0.5 text-[13px] text-cy-secondary">
-              {favoriteIds.length} selected · from the full cluster catalog below
+              {favoriteIds.length} selected · Chat only lists these
             </p>
           </div>
         </div>

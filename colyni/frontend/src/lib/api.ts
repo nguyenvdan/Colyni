@@ -1,12 +1,15 @@
+import { getCoordinatorApiUrl, getMachineRole } from '@/lib/machine-role'
+
 /**
  * Colyni API URLs.
  *
+ * - **Contributor mode (Settings):** all API calls go to the coordinator’s Colyni backend URL
+ *   (e.g. `http://192.168.1.10:8787`). CORS on that machine must allow this browser origin.
  * - **Vite dev (port 5173):** leave env unset — same-origin `/api` and `/v1` are proxied to the
- *   Colyni backend (see `vite.config.ts`).
- * - **Embedded in colyni-cluster (port 52415):** the UI is served from the inference server but
- *   credits + proxies live on the Colyni backend (8787). We resolve the ledger base from
- *   `VITE_COLYNI_LEDGER_URL`, or default to `http://<current-host>:8787` when the page is served
- *   from port 52415.
+ *   Colyni backend (see `vite.config.ts`) when you are the coordinator.
+ * - **Embedded in colyni-cluster (port 52415):** credits + proxies live on the Colyni backend
+ *   (8787). We resolve the ledger base from `VITE_COLYNI_LEDGER_URL`, or default to
+ *   `http://<current-host>:8787` when the page is served from port 52415.
  * - **Static build on another host:** set `VITE_COLYNI_LEDGER_URL` at build time.
  */
 function resolveLedgerBase(): string {
@@ -28,6 +31,12 @@ function resolveLedgerBase(): string {
 
 export function apiUrl(path: string): string {
   const p = path.startsWith('/') ? path : `/${path}`
+  if (getMachineRole() === 'contributor') {
+    const coord = getCoordinatorApiUrl().replace(/\/$/, '')
+    if (coord) {
+      return `${coord}${p}`
+    }
+  }
   const base = resolveLedgerBase()
   return base ? `${base}${p}` : p
 }
