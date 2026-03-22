@@ -96,7 +96,9 @@ trap cleanup EXIT INT TERM
 
 # --- Start colyni-cluster ---
 cd "$ROOT/inference"
+export COLYNI_CLUSTER_MODEL_LOAD_TIMEOUT="${COLYNI_CLUSTER_MODEL_LOAD_TIMEOUT:-1800}"
 echo "==> Starting colyni-cluster (inference + Colyni UI on :52415)"
+echo "    Model load timeout: ${COLYNI_CLUSTER_MODEL_LOAD_TIMEOUT}s"
 uv run colyni-cluster &
 PIDS+=("$!")
 

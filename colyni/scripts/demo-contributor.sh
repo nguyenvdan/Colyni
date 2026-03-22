@@ -55,4 +55,5 @@ echo ""
 source "$ROOT/scripts/demo-model-allowlist.sh"
 
 cd "$ROOT/inference"
+export COLYNI_CLUSTER_MODEL_LOAD_TIMEOUT="${COLYNI_CLUSTER_MODEL_LOAD_TIMEOUT:-1800}"
 uv run colyni-cluster
