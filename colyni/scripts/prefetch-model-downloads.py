@@ -23,6 +23,19 @@ import urllib.parse
 import urllib.request
 
 
+def unwrap_instance(raw: object) -> dict | None:
+    """API returns instance as either a flat object or wrapped, e.g. {\"MlxRingInstance\": {...}}."""
+    if not isinstance(raw, dict):
+        return None
+    if raw.get("shardAssignments") or raw.get("shard_assignments"):
+        return raw
+    if len(raw) == 1:
+        inner = next(iter(raw.values()))
+        if isinstance(inner, dict):
+            return inner
+    return None
+
+
 def req_json(method: str, url: str, body: object | None = None) -> tuple[int, object]:
     data = None
     headers = {"Accept": "application/json"}
@@ -59,19 +72,32 @@ def main() -> int:
 
     previews = (data or {}).get("previews") or []
     inst = None
+    first_err: str | None = None
     for p in previews:
+        if p.get("error") and first_err is None:
+            first_err = str(p["error"])
         if p.get("error"):
             continue
         if p.get("instance"):
             inst = p["instance"]
             break
     if not inst:
+        hint = ""
+        if first_err:
+            hint = f" First preview error: {first_err}"
+            if "memory" in first_err.lower() or "sufficient" in first_err.lower():
+                hint += (
+                    " — Large models need enough total RAM across all cluster nodes; "
+                    "connect every contributor Mac, then retry prefetch."
+                )
         print(
-            "ERROR: No valid placement preview (cluster up? model id valid? enough nodes?).",
+            "ERROR: No valid placement preview (cluster up? model id valid? enough nodes?)."
+            + hint,
             file=sys.stderr,
         )
         return 1
 
+    inst = unwrap_instance(inst) or {}
     sa = inst.get("shardAssignments") or inst.get("shard_assignments")
     if not sa:
         print("ERROR: instance missing shardAssignments", file=sys.stderr)

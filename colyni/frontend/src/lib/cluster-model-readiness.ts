@@ -20,6 +20,63 @@ function normModelId(a: string, b: string): boolean {
   return a.trim() === b.trim()
 }
 
+function memoryBytes(mem: unknown): number {
+  if (!mem || typeof mem !== 'object') return 0
+  const o = mem as Record<string, unknown>
+  return Number(o.inBytes ?? o.in_bytes ?? 0)
+}
+
+/** Best-effort: HF download progress for this model from state.downloads (often dominates load time). */
+export function downloadProgressSummary(
+  state: Record<string, unknown>,
+  modelId: string,
+): string | null {
+  const want = modelId.trim()
+  const raw = state.downloads ?? state.Downloads
+  if (!raw || typeof raw !== 'object') return null
+
+  let bestPct = -1
+  let best: string | null = null
+
+  for (const nodeList of Object.values(raw as Record<string, unknown>)) {
+    if (!Array.isArray(nodeList)) continue
+    for (const item of nodeList) {
+      if (!item || typeof item !== 'object') continue
+      const tag = getTaggedVariant(item)
+      if (tag !== 'DownloadOngoing') continue
+      const payload = getTaggedPayload(item)
+      if (!payload) continue
+      const hay = JSON.stringify(payload)
+      if (!hay.includes(`"modelId":"${want}"`) && !hay.includes(`"model_id":"${want}"`)) continue
+
+      const dp = (payload.downloadProgress ?? payload.download_progress) as
+        | Record<string, unknown>
+        | undefined
+      if (!dp || typeof dp !== 'object') continue
+
+      const down = memoryBytes(dp.downloaded ?? dp.Downloaded)
+      const tot = memoryBytes(dp.total ?? dp.Total)
+      const etaMs = Number(dp.etaMs ?? dp.eta_ms ?? 0)
+      if (tot <= 0) {
+        const line = 'Downloading model files (preparing transfer)…'
+        if (bestPct < 0) best = line
+        continue
+      }
+      const pct = Math.min(100, Math.round((down / tot) * 100))
+      const gb = (b: number) => (b / 1024 ** 3).toFixed(2)
+      const downGb = gb(down)
+      const totGb = gb(tot)
+      let line = `Downloading model files ${pct}% (${downGb} / ${totGb} GB)`
+      if (etaMs > 5000) line += ` · ~${Math.max(1, Math.round(etaMs / 60000))} min left`
+      if (pct > bestPct) {
+        bestPct = pct
+        best = line
+      }
+    }
+  }
+  return best
+}
+
 export function countComputersForInstance(instance: Record<string, unknown>): number {
   const sa = (instance.shardAssignments ?? instance.shard_assignments) as
     | Record<string, unknown>
@@ -73,7 +130,13 @@ function runnersReadyForInstance(state: Record<string, unknown>, instance: Recor
   const runners = (state.runners ?? state.Runners) as Record<string, unknown> | undefined
   if (!runners) return false
   const ids = [...new Set(Object.values(n2r))]
-  const ok = new Set(['RunnerReady', 'RunnerRunning', 'RunnerLoaded'])
+  /** WarmingUp often means weights are loaded; chat may work — avoids 5+ min extra wait if tags lag. */
+  const ok = new Set([
+    'RunnerReady',
+    'RunnerRunning',
+    'RunnerLoaded',
+    'RunnerWarmingUp',
+  ])
   for (const rid of ids) {
     const st = runners[rid]
     const tag = getTaggedVariant(st)
@@ -108,13 +171,19 @@ export function isModelReadyOnCluster(state: Record<string, unknown>, modelId: s
 export function describeLoadStatus(
   state: Record<string, unknown>,
   modelId: string,
-): { computers: number; layerLine: string | null; ready: boolean } {
+): {
+  computers: number
+  layerLine: string | null
+  downloadLine: string | null
+  ready: boolean
+} {
   const inst = findInstanceForModel(state, modelId)
+  const downloadLine = downloadProgressSummary(state, modelId)
   if (!inst) {
-    return { computers: 0, layerLine: null, ready: false }
+    return { computers: 0, layerLine: null, downloadLine, ready: false }
   }
   const computers = countComputersForInstance(inst)
   const ready = runnersReadyForInstance(state, inst)
   const layerLine = ready ? null : layerProgressLine(state, inst)
-  return { computers, layerLine, ready }
+  return { computers, layerLine, downloadLine, ready }
 }

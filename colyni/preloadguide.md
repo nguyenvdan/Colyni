@@ -67,6 +67,31 @@ Give them **Mac 1’s LAN IP** and port **8787**, or the **invite link**.
 
 ---
 
+## Download from the terminal (outside Colyni — **no** multi-node requirement)
+
+Colyni stores models under **`~/.colyni-cluster/models/<org--model>/`** on macOS (slash in `org/model` becomes `--`). You can fill that folder yourself; the cluster will use it the same way as an in-app download.
+
+**Disk:** A 70B 4-bit repo is on the order of **~40 GiB** on disk; 27B 4-bit **~16 GiB**. Ensure enough free space before downloading (check with `df -h ~`).
+
+**Option A — helper script (uses `huggingface_hub` from `inference`):**
+
+```bash
+cd colyni/inference && uv sync   # once
+uv run python ../scripts/download-model-hf-to-colyni.py "mlx-community/Qwen3.5-27B-4bit"
+```
+
+**Option B — Hugging Face CLI** (install with `pip install huggingface_hub[cli]` or `uv tool install huggingface_hub`):
+
+```bash
+MODEL="mlx-community/Qwen3.5-27B-4bit"
+DEST="$HOME/.colyni-cluster/models/${MODEL//\//--}"
+huggingface-cli download "$MODEL" --local-dir "$DEST" --local-dir-use-symlinks False
+```
+
+Use a **HF token** for gated repos: `export HF_TOKEN=...` or `hf auth login`.
+
+---
+
 ## Preload model weights (after all nodes join)
 
 Run on **Mac 1** (coordinator), **after** Mac 2 & 3 show up in the cluster UI:

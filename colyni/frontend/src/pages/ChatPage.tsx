@@ -197,11 +197,13 @@ export function ChatPage({ nodeId }: ChatPageProps) {
           if (ac.signal.aborted) return
 
           const d = describeLoadStatus(state, mid)
+          const detail =
+            d.downloadLine ?? d.layerLine ?? undefined
           setPipeline({
             kind: 'loading',
             step: 'waiting',
             computers: d.computers,
-            detail: d.layerLine ?? undefined,
+            detail,
           })
 
           if (d.ready) {
@@ -359,7 +361,7 @@ export function ChatPage({ nodeId }: ChatPageProps) {
                 {pipeline.step === 'checking' && 'Checking if the model is already running…'}
                 {pipeline.step === 'waiting' &&
                   (pipeline.detail ??
-                    'Shards are loading across the cluster — first time can take a few minutes.')}
+                    'Usually slow because of downloading from Hugging Face and loading weights into memory — especially the first time.')}
               </p>
             </div>
           </div>
