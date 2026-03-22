@@ -6,7 +6,6 @@ from typing import Sequence
 from colyni_cluster.master.placement_utils import (
     Cycle,
     filter_cycles_by_memory,
-    get_largest_cycles,
     get_mlx_jaccl_coordinators,
     get_mlx_jaccl_devices_matrix,
     get_mlx_ring_hosts_by_node,
