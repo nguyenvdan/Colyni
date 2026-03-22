@@ -23,6 +23,34 @@ fi
 LAN_IP=$(detect_lan_ip)
 export COLYNI_BACKEND_PORT="${COLYNI_BACKEND_PORT:-8787}"
 
+# Avoid Errno 48 when a previous colyni-cluster / uvicorn is still bound.
+# Set DEMO_SKIP_FREE_PORTS=1 to skip (e.g. you run cluster and API separately on purpose).
+_free_coordinator_ports() {
+  if [[ "${DEMO_SKIP_FREE_PORTS:-0}" == "1" ]]; then
+    return 0
+  fi
+  local p t
+  for p in 52415 "${COLYNI_BACKEND_PORT}"; do
+    t=$(lsof -ti ":$p" 2>/dev/null | tr '\n' ' ' || true)
+    if [[ -n "${t// }" ]]; then
+      echo "==> Port $p in use (PID(s): ${t}) — stopping so this coordinator can bind"
+      # shellcheck disable=SC2086
+      kill ${t} 2>/dev/null || true
+    fi
+  done
+  sleep 1
+  for p in 52415 "${COLYNI_BACKEND_PORT}"; do
+    t=$(lsof -ti ":$p" 2>/dev/null | tr '\n' ' ' || true)
+    if [[ -n "${t// }" ]]; then
+      echo "==> Port $p still busy — SIGKILL ${t}"
+      # shellcheck disable=SC2086
+      kill -9 ${t} 2>/dev/null || true
+    fi
+  done
+  sleep 1
+}
+_free_coordinator_ports
+
 # Same query string as Settings → Copy invite link (contributor=1 + coordinator + localInference).
 colyni_invite_url() {
   local ui_port="${1:?ui port}"
@@ -52,6 +80,12 @@ export COLYNI_DEMO_FREE_CHAT="${COLYNI_DEMO_FREE_CHAT:-1}"
 # Widen CORS for phones / other laptops on the same Wi‑Fi (override .env for this shell only).
 if [[ "${COLYNI_DEMO_LAN:-1}" == "1" ]]; then
   export CORS_ORIGINS="http://localhost:5173,http://127.0.0.1:5173,http://${LAN_IP}:5173,http://localhost:52415,http://127.0.0.1:52415,http://${LAN_IP}:52415"
+fi
+
+# shellcheck source=demo-model-allowlist.sh
+source "$ROOT/scripts/demo-model-allowlist.sh"
+if [[ -n "${COLYNI_CLUSTER_MODEL_ALLOWLIST:-}" ]]; then
+  echo "==> Model catalog restricted (COLYNI_CLUSTER_MODEL_ALLOWLIST). Full list: COLYNI_FULL_MODEL_CATALOG=1 $0"
 fi
 
 PIDS=()

@@ -1,3 +1,4 @@
+import os
 from enum import Enum
 from typing import Annotated, Any
 
@@ -39,6 +40,18 @@ CARD_SEARCH_PATH = [
 _card_cache: dict[ModelId, "ModelCard"] = {}
 
 
+def get_model_id_allowlist() -> frozenset[str] | None:
+    """If set, only these Hugging Face ids appear in the catalog (`COLYNI_CLUSTER_MODEL_ALLOWLIST`).
+
+    Comma-separated list, e.g. ``mlx-community/Foo-4bit,org/bar``.
+    """
+    raw = os.environ.get("COLYNI_CLUSTER_MODEL_ALLOWLIST", "").strip()
+    if not raw:
+        return None
+    ids = frozenset(p.strip() for p in raw.split(",") if p.strip())
+    return ids or None
+
+
 async def _refresh_card_cache():
     for path in CARD_SEARCH_PATH:
         async for toml_file in path.rglob("*.toml"):
@@ -58,8 +71,13 @@ async def get_model_cards() -> list["ModelCard"]:
     if len(_card_cache) == 0:
         await _refresh_card_cache()
     if COLYNI_CLUSTER_ENABLE_IMAGE_MODELS:
-        return list(_card_cache.values())
-    return [c for c in _card_cache.values() if not _is_image_card(c)]
+        cards = list(_card_cache.values())
+    else:
+        cards = [c for c in _card_cache.values() if not _is_image_card(c)]
+    allow = get_model_id_allowlist()
+    if allow is not None:
+        cards = [c for c in cards if str(c.model_id) in allow]
+    return cards
 
 
 class ModelTask(str, Enum):

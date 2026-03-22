@@ -52,6 +52,8 @@ cd colyni
 
 This builds the cluster UI, starts **colyni-cluster** (e.g. **:52415**), and the Colyni backend (**8787**). Note the printed **LAN** URLs.
 
+**Catalog:** `demo-coordinator.sh` / `demo-contributor.sh` set **`COLYNI_CLUSTER_MODEL_ALLOWLIST`** to the three demo MLX models only (Settings search + Chat list). For the full bundled catalog, run with **`COLYNI_FULL_MODEL_CATALOG=1`**.
+
 ### Contributors (Mac 2 & 3)
 
 ```bash

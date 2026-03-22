@@ -131,6 +131,7 @@ from colyni_cluster.shared.models.model_cards import (
     ModelId,
     delete_custom_card,
     get_model_cards,
+    get_model_id_allowlist,
     is_custom_card,
 )
 from colyni_cluster.shared.tracing import TraceEvent, compute_stats, export_trace, load_trace_file
@@ -1570,6 +1571,12 @@ class API:
 
     async def add_custom_model(self, payload: AddCustomModelParams) -> ModelListModel:
         """Fetch a model from HuggingFace and save as a custom model card."""
+        allow = get_model_id_allowlist()
+        if allow is not None and str(payload.model_id) not in allow:
+            raise HTTPException(
+                status_code=403,
+                detail="Adding models is disabled (COLYNI_CLUSTER_MODEL_ALLOWLIST is set and this id is not allowed).",
+            )
         try:
             card = await ModelCard.fetch_from_hf(payload.model_id)
         except Exception as exc:
@@ -1602,6 +1609,27 @@ class API:
         self, query: str = "", limit: int = 20
     ) -> list[HuggingFaceSearchResult]:
         """Search HuggingFace Hub — tries mlx-community first, falls back to all of HuggingFace."""
+        allow = get_model_id_allowlist()
+        if allow is not None:
+            cards = await get_model_cards()
+            q = (query or "").strip().lower()
+
+            def _match(card: ModelCard) -> bool:
+                mid = str(card.model_id).lower()
+                return not q or q in mid or q in card.base_model.lower()
+
+            return [
+                HuggingFaceSearchResult(
+                    id=str(c.model_id),
+                    author=str(c.model_id).split("/")[0]
+                    if "/" in str(c.model_id)
+                    else "",
+                    tags=[c.family] if c.family else [],
+                )
+                for c in cards
+                if _match(c)
+            ][:limit]
+
         from huggingface_hub import ModelInfo, list_models
 
         def _to_results(models: Iterable[ModelInfo]) -> list[HuggingFaceSearchResult]:

@@ -51,5 +51,8 @@ echo "  WITH_VITE=1 → also serve http://${LAN_IP}:5173 for the React app"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
+# shellcheck source=demo-model-allowlist.sh
+source "$ROOT/scripts/demo-model-allowlist.sh"
+
 cd "$ROOT/inference"
 uv run colyni-cluster
