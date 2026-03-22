@@ -1,6 +1,6 @@
 model_id = "mlx-community/Mistral-Small-24B-Instruct-2501-4bit"
-n_layers = 56
-hidden_size = 6144
+n_layers = 40
+hidden_size = 5120
 num_key_value_heads = 8
 supports_tensor = true
 tasks = ["TextGeneration"]
