@@ -8,5 +8,5 @@
 if [[ "${COLYNI_FULL_MODEL_CATALOG:-0}" == "1" ]]; then
   unset COLYNI_CLUSTER_MODEL_ALLOWLIST 2>/dev/null || true
 elif [[ -z "${COLYNI_CLUSTER_MODEL_ALLOWLIST:-}" ]]; then
-  export COLYNI_CLUSTER_MODEL_ALLOWLIST="mlx-community/Llama-3.2-3B-Instruct-8bit,mlx-community/Qwen3.5-27B-4bit,mlx-community/Llama-3.3-70B-Instruct-4bit"
+  export COLYNI_CLUSTER_MODEL_ALLOWLIST="mlx-community/Llama-3.2-3B-Instruct-8bit,mlx-community/gemma-3-27b-it-qat-4bit,mlx-community/Llama-3.3-70B-Instruct-4bit"
 fi
