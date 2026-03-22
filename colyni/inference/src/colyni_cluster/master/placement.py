@@ -5,6 +5,7 @@ from typing import Sequence
 
 from colyni_cluster.master.placement_utils import (
     Cycle,
+    effective_ram_for_placement,
     filter_cycles_by_memory,
     get_mlx_jaccl_coordinators,
     get_mlx_jaccl_devices_matrix,
@@ -82,7 +83,41 @@ def place_instance(
         candidate_cycles, node_memory, command.model_card.storage_size
     )
     if len(cycles_with_sufficient_memory) == 0:
-        raise ValueError("No cycles found with sufficient memory")
+        req = command.model_card.storage_size
+        node_lines: list[str] = []
+        for nid in sorted(topology.list_nodes(), key=str):
+            if nid in node_memory:
+                mu = node_memory[nid]
+                eff = effective_ram_for_placement(mu)
+                node_lines.append(
+                    f"{nid}: ram_avail={mu.ram_available.in_gb:.2f}GiB "
+                    f"effective={eff.in_gb:.2f}GiB"
+                )
+            else:
+                node_lines.append(f"{nid}: (no memory heartbeat yet)")
+        best_sum_bytes = 0
+        for c in candidate_cycles:
+            if not all(n in node_memory for n in c):
+                continue
+            s = sum(
+                effective_ram_for_placement(node_memory[n]).in_bytes for n in c.node_ids
+            )
+            best_sum_bytes = max(best_sum_bytes, s)
+        best_gib = best_sum_bytes / (1024**3)
+        multi = sum(1 for c in candidate_cycles if len(c) > 1)
+        raise ValueError(
+            "No cycles found with sufficient memory: "
+            f"model {command.model_card.model_id} needs {req.in_gb:.2f} GiB "
+            "summed across nodes in a placement cycle (see model card storage_size). "
+            f"Largest qualifying candidate cycle had ~{best_gib:.2f} GiB effective. "
+            f"Topology nodes: {len(list(topology.list_nodes()))}; "
+            f"candidate cycles (min_nodes>={command.min_nodes}): {len(candidate_cycles)} "
+            f"({multi} multi-node). "
+            f"Per node: {'; '.join(node_lines)}. "
+            "Fix: quit apps to raise macOS 'available' RAM, ensure every Mac is in the "
+            "mesh and heartbeating, or set COLYNI_CLUSTER_PLACEMENT_INCLUDE_SWAP=1 to "
+            "count swap in placement (slower, may still OOM)."
+        )
 
     if command.sharding == Sharding.Tensor:
         if not command.model_card.supports_tensor:
@@ -133,7 +168,7 @@ def place_instance(
     selected_cycle = max(
         cycles_with_leaf_nodes if cycles_with_leaf_nodes != [] else smallest_cycles,
         key=lambda cycle: sum(
-            (node_memory[node_id].ram_available for node_id in cycle),
+            (effective_ram_for_placement(node_memory[node_id]) for node_id in cycle),
             start=Memory(),
         ),
     )

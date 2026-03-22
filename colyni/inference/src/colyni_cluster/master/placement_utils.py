@@ -1,3 +1,4 @@
+import os
 from collections.abc import Generator, Mapping
 
 from loguru import logger
@@ -18,6 +19,23 @@ from colyni_cluster.shared.types.worker.shards import (
 )
 
 
+def effective_ram_for_placement(usage: MemoryUsage) -> Memory:
+    """RAM metric used for pipeline placement (filter + layer split).
+
+    When ``COLYNI_CLUSTER_PLACEMENT_INCLUDE_SWAP`` is ``1``/``true``/``yes``,
+    adds ``swap_available`` so borderline clusters can pass placement. MLX may
+    still be slow if weights do not fit in real RAM.
+    """
+    b = usage.ram_available.in_bytes
+    if os.getenv("COLYNI_CLUSTER_PLACEMENT_INCLUDE_SWAP", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+    ):
+        b += usage.swap_available.in_bytes
+    return Memory.from_bytes(b)
+
+
 def filter_cycles_by_memory(
     cycles: list[Cycle],
     node_memory: Mapping[NodeId, MemoryUsage],
@@ -29,7 +47,7 @@ def filter_cycles_by_memory(
             continue
 
         total_mem = sum(
-            (node_memory[node_id].ram_available for node_id in cycle.node_ids),
+            (effective_ram_for_placement(node_memory[node_id]) for node_id in cycle.node_ids),
             start=Memory(),
         )
         if total_mem >= required_memory:
@@ -85,7 +103,7 @@ def _compute_total_memory(
     node_memory: Mapping[NodeId, MemoryUsage],
 ) -> Memory:
     total_memory = sum(
-        (node_memory[node_id].ram_available for node_id in node_ids),
+        (effective_ram_for_placement(node_memory[node_id]) for node_id in node_ids),
         start=Memory(),
     )
     if total_memory.in_bytes == 0:
@@ -102,7 +120,8 @@ def _allocate_and_validate_layers(
     layer_allocations = allocate_layers_proportionally(
         total_layers=model_card.n_layers,
         memory_fractions=[
-            node_memory[node_id].ram_available / total_memory for node_id in node_ids
+            effective_ram_for_placement(node_memory[node_id]) / total_memory
+            for node_id in node_ids
         ],
     )
 
@@ -111,7 +130,7 @@ def _allocate_and_validate_layers(
     for i, node_id in enumerate(node_ids):
         node_layers = layer_allocations[i]
         required_memory = (total_storage * node_layers) // total_layers
-        available_memory = node_memory[node_id].ram_available
+        available_memory = effective_ram_for_placement(node_memory[node_id])
         if required_memory > available_memory:
             raise ValueError(
                 f"Node {i} ({node_id}) has insufficient memory: "
