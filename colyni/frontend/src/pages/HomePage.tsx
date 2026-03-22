@@ -1,6 +1,5 @@
 import { ArrowRight, Globe as GlobeIcon, Zap, Shield, Lock } from 'lucide-react'
 
-import { EasyStepsCard } from '@/components/easy-steps-card'
 import { InteractiveGlobe } from '@/components/ui/interactive-globe'
 import { GlowCard } from '@/components/ui/glow-card'
 import { useTheme } from '@/lib/theme'
@@ -14,30 +13,30 @@ type HomePageProps = {
 const FEATURES = [
   {
     icon: GlobeIcon,
-    title: 'Distributed inference',
-    body: 'Models shard across every machine on the network automatically. No config needed.',
+    title: 'A worldwide mesh',
+    body: 'Link up with people anywhere and pool GPUs and laptops into one cluster. Big models split across the group so more people can actually run them.',
   },
   {
     icon: Zap,
     title: 'Credit economy',
-    body: 'Earn credits for every prompt your device helps serve. Spend them to run your own.',
+    body: 'Chip in compute when others need it, earn credits, and spend them when you want time on the shared models.',
   },
   {
     icon: Shield,
-    title: 'Sustainable by default',
-    body: 'Local compute means less water, less energy, less carbon versus distant datacenters.',
+    title: 'Sustainability first',
+    body: 'Use machines that already exist instead of feeding more giant datacenters — the ones that pull huge amounts of water, electricity, and CO₂ to train and serve models at scale.',
   },
   {
     icon: Lock,
-    title: 'Private by architecture',
-    body: 'Your prompts never leave your network. No third-party logs your conversations or trains on your data.',
+    title: 'Not another megacloud',
+    body: 'Collective inference without defaulting to a single vendor’s supercomputer farm. You share capacity peer-to-peer, not through a centralized choke point.',
   },
 ]
 
 const GLOBE_LIGHT = {
-  dotColor: 'rgba(61, 140, 94, ALPHA)',
-  arcColor: 'rgba(61, 140, 94, 0.35)',
-  markerColor: 'rgba(45, 107, 71, 1)',
+  dotColor: 'rgba(180, 83, 9, ALPHA)',
+  arcColor: 'rgba(124, 45, 18, 0.38)',
+  markerColor: 'rgba(107, 68, 35, 1)',
 }
 
 const GLOBE_DARK = {
@@ -57,19 +56,20 @@ export function HomePage({ onGoChat, onGoContribute, onGoSettings }: HomePagePro
         <div className="pointer-events-none absolute inset-0 dot-grid opacity-40" />
         <div className="relative mx-auto flex max-w-[1100px] flex-col items-center gap-0 px-6 md:flex-row md:px-12">
           {/* Left copy */}
-          <div className="relative z-10 flex max-w-lg flex-1 flex-col items-start py-20 animate-fade-up md:py-28">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-cy-green/20 bg-cy-green-light px-3 py-1 text-[12px] font-medium uppercase tracking-[0.04em] text-cy-green">
-              <span className="h-1.5 w-1.5 rounded-full bg-cy-green" />
-              Open source
-            </span>
-            <h1 className="mt-6 text-[clamp(32px,5vw,48px)] font-semibold leading-[1.1] tracking-[-0.02em] text-cy-text">
+          <div className="western-wanted-frame relative z-10 mx-auto flex max-w-lg flex-1 flex-col items-start px-5 py-20 animate-fade-up md:mx-0 md:py-28">
+            <div className="western-star-rule mb-5 hidden w-16 md:block" aria-hidden />
+            <h1 className="text-[clamp(32px,5vw,48px)] font-semibold leading-[1.1] tracking-[-0.02em] text-cy-text">
               Run frontier AI
               <br />
               <span className="text-cy-green">together.</span>
             </h1>
-            <p className="mt-6 max-w-md text-[15px] leading-[1.7] text-cy-secondary">
-              Use a few laptops like one big brain. Read the short steps below — then tap Chat and
-              type whatever you want.
+            <p className="mt-6 max-w-lg text-[15px] leading-[1.85] text-cy-secondary">
+              Colyni is for connecting people around the world so everyone can contribute compute
+              together and run large language models as a group. Instead of renting time on massive
+              datacenter supercomputers — infrastructure that consumes enormous water, electricity,
+              and carbon — we orchestrate the GPUs and computers that already sit on desks and in
+              homes. Workloads spread across the mesh automatically; you earn credits when you help
+              the network and spend them when you chat. Open <strong className="font-semibold text-cy-text">Chat</strong>, choose a model, wait for <strong className="font-semibold text-cy-text">Ready</strong>, and go.
             </p>
             <div className="mt-10 flex flex-wrap items-center gap-3">
               <button
@@ -94,9 +94,6 @@ export function HomePage({ onGoChat, onGoContribute, onGoSettings }: HomePagePro
               >
                 Settings
               </button>
-            </div>
-            <div className="mt-8 w-full max-w-lg">
-              <EasyStepsCard onOpenSettings={onGoSettings} />
             </div>
           </div>
 
@@ -133,8 +130,9 @@ export function HomePage({ onGoChat, onGoContribute, onGoSettings }: HomePagePro
           <p className="text-[12px] font-medium uppercase tracking-[0.04em] text-cy-muted">
             Built at HooHacks 2026
           </p>
-          <h2 className="max-w-md text-[24px] font-semibold tracking-[-0.01em] text-cy-text">
-            Your laptops are a supercomputer. Let them act like one.
+          <h2 className="max-w-lg text-[24px] font-semibold tracking-[-0.01em] text-cy-text">
+            One planet, millions of GPUs already plugged in — let&apos;s run LLMs on those instead of
+            building another thirsty datacenter.
           </h2>
           <button
             type="button"

@@ -75,7 +75,7 @@ export function NavBar({ items, activeTab, onTabChange, className }: NavBarProps
           type="button"
           onClick={toggle}
           className="flex min-h-[44px] min-w-[44px] cursor-pointer items-center justify-center rounded-full p-2 text-cy-secondary transition-colors hover:text-cy-text md:min-h-0 md:min-w-0"
-          title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+          title={theme === 'light' ? 'Ride into night mode' : 'High noon (frontier theme)'}
         >
           {theme === 'light' ? (
             <Moon size={16} strokeWidth={2} />

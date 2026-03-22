@@ -37,6 +37,9 @@ const LITERS_PER_KWH = 1.8
 const CO2_PER_KWH = 0.39
 const CHATS_PER_USER_PER_MONTH = 600
 
+/** Rough heuristic: credits ↔ “cloud chat equivalents” for personal savings display (frontend only). */
+const CREDITS_PER_CHAT_EQUIVALENT = 25
+
 function buildProjectionData() {
   const userCounts = [1, 10, 50, 100, 500, 1_000, 5_000, 10_000]
   return userCounts.map((users) => {
@@ -76,11 +79,17 @@ function CustomTooltip({ active, payload, label }: {
   )
 }
 
-export function ContributePage() {
+type ContributePageProps = {
+  nodeId: string
+}
+
+export function ContributePage({ nodeId }: ContributePageProps) {
   const { role: machineRole } = useMachineRole()
   const { theme } = useTheme()
-  const gridStroke = theme === 'dark' ? '#2a2a27' : '#e5e5e3'
-  const tickFill = theme === 'dark' ? '#5a5a56' : '#a8a8a3'
+  const gridStroke = theme === 'dark' ? '#2a2a27' : '#c9b896'
+  const tickFill = theme === 'dark' ? '#5a5a56' : '#7d6a58'
+
+  const [creditBalance, setCreditBalance] = useState<number | null>(null)
 
   const [selfId, setSelfId] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -90,13 +99,6 @@ export function ContributePage() {
   const [nodes, setNodes] = useState<
     { node_id: string; label: string; balance: number }[]
   >([])
-  const [sustain, setSustain] = useState<{
-    completed_chats: number
-    energy_kwh_avoided: number
-    water_liters_saved: number
-    co2_kg_avoided: number
-  } | null>(null)
-
   const [modelQuery, setModelQuery] = useState('')
   const [clusterModels, setClusterModels] = useState<
     { id: string; name?: string; family?: string; is_custom?: boolean }[]
@@ -158,16 +160,30 @@ export function ContributePage() {
     return () => window.clearInterval(t)
   }, [])
 
-  useEffect(() => {
-    const load = async () => {
-      const r = await fetch(apiUrl('/api/sustainability'))
-      if (!r.ok) return
-      setSustain(await r.json())
+  const refreshCreditBalance = useCallback(async () => {
+    const id = nodeId.trim()
+    if (!id) {
+      setCreditBalance(null)
+      return
     }
-    void load()
-    const t = window.setInterval(load, 8000)
+    try {
+      const r = await fetch(apiUrl(`/api/tokens/${encodeURIComponent(id)}`))
+      if (!r.ok) return
+      const data = (await r.json()) as { balance: number }
+      setCreditBalance(data.balance)
+    } catch {
+      /* ignore */
+    }
+  }, [nodeId])
+
+  useEffect(() => {
+    void refreshCreditBalance()
+  }, [refreshCreditBalance])
+
+  useEffect(() => {
+    const t = window.setInterval(() => void refreshCreditBalance(), 15_000)
     return () => window.clearInterval(t)
-  }, [])
+  }, [refreshCreditBalance])
 
   const loadClusterModels = useCallback(async () => {
     setModelsLoading(true)
@@ -273,27 +289,38 @@ export function ContributePage() {
     return { id, name, used, total }
   })
 
-  const sustainCards = [
+  const creditImpact = useMemo(() => {
+    const credits = creditBalance ?? 0
+    const equivChats = credits / CREDITS_PER_CHAT_EQUIVALENT
+    const kwh = equivChats * KWH_PER_CHAT
+    return {
+      water: kwh * LITERS_PER_KWH,
+      co2: kwh * CO2_PER_KWH,
+      energy: kwh,
+    }
+  }, [creditBalance])
+
+  const creditCards = [
     {
       icon: Droplets,
-      label: 'Water saved',
-      value: sustain?.water_liters_saved ?? 0,
+      label: 'Water (est.)',
+      value: creditImpact.water,
       format: (n: number) => `${n.toFixed(1)} L`,
       color: 'text-cyan-600',
       bg: 'bg-cyan-600/10',
     },
     {
       icon: Leaf,
-      label: 'CO₂ avoided',
-      value: sustain?.co2_kg_avoided ?? 0,
+      label: 'CO₂ avoided (est.)',
+      value: creditImpact.co2,
       format: (n: number) => `${n.toFixed(2)} kg`,
       color: 'text-cy-green',
       bg: 'bg-cy-green/10',
     },
     {
       icon: Zap,
-      label: 'Energy avoided',
-      value: sustain?.energy_kwh_avoided ?? 0,
+      label: 'Energy avoided (est.)',
+      value: creditImpact.energy,
       format: (n: number) => `${n.toFixed(3)} kWh`,
       color: 'text-amber-600',
       bg: 'bg-amber-600/10',
@@ -304,18 +331,35 @@ export function ContributePage() {
     <div className="mx-auto max-w-4xl space-y-10">
       <div className="animate-fade-up">
         <h1 className="text-[24px] font-semibold tracking-tight text-cy-text">Contribute</h1>
-        <p className="mt-2 max-w-lg text-[15px] leading-[1.6] text-cy-secondary">
-          Live cluster state and estimated environmental impact of running inference locally.
+        <p className="mt-2 max-w-2xl text-[15px] leading-[1.65] text-cy-secondary">
+          See who&apos;s on the mesh and how pooling existing machines compares to pushing the same
+          work through warehouse-scale datacenters. The goal is simple: people everywhere
+          contributing spare compute so we rely less on supercomputers that strain water, power, and
+          CO₂ budgets.
         </p>
       </div>
 
-      {/* Current impact */}
+      {/* Current impact — derived from your credit balance (rough vs. cloud baseline) */}
       <section className="animate-fade-up delay-100">
-        <h2 className="mb-4 text-[12px] font-medium uppercase tracking-[0.04em] text-cy-muted">
-          Current impact · {sustain?.completed_chats ?? 0} chats
+        <h2 className="mb-1 text-[12px] font-medium uppercase tracking-[0.04em] text-cy-muted">
+          Current impact
         </h2>
+        <p className="mb-4 max-w-xl text-[13px] leading-snug text-cy-secondary">
+          Rough savings implied by your credit balance: we map ~{CREDITS_PER_CHAT_EQUIVALENT} credits
+          to one “typical cloud chat” and apply the same datacenter comparison constants as below (
+          {KWH_PER_CHAT} kWh/chat, {LITERS_PER_KWH} L/kWh, {CO2_PER_KWH} kg CO₂/kWh).{' '}
+          {!nodeId.trim() ? (
+            <span className="text-cy-muted">Save a node id in Settings to load your balance.</span>
+          ) : creditBalance == null ? (
+            <span className="text-cy-muted">Couldn&apos;t load credits yet — open Chat once to connect.</span>
+          ) : (
+            <span className="font-mono tabular-nums text-cy-text">
+              {Math.round(creditBalance).toLocaleString()} credits
+            </span>
+          )}
+        </p>
         <div className="grid gap-4 sm:grid-cols-3">
-          {sustainCards.map((c) => (
+          {creditCards.map((c) => (
             <GlowCard key={c.label} innerClassName="flex items-start gap-4 p-5">
               <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${c.bg}`}>
                 <c.icon size={18} strokeWidth={1.5} className={c.color} />

@@ -4,21 +4,24 @@
   --font-sans: 'Geist Sans', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, monospace;
 
-  /* Light palette — bg and surface are the SAME so cards sit flush on the plane */
-  --color-cy-bg: #f9f9f8;
-  --color-cy-surface: #f9f9f8;
-  --color-cy-inset: #f2f2f0;
-  --color-cy-border: #e5e5e3;
-  --color-cy-border-strong: #d1d1ce;
-  --color-cy-text: #1a1a18;
-  --color-cy-secondary: #6b6b67;
-  --color-cy-muted: #a8a8a3;
-  --color-cy-green: #3d8c5e;
-  --color-cy-green-dark: #2d6b47;
-  --color-cy-green-light: #ebf5ef;
-  --color-cy-green-muted: #6aaf87;
-  --color-cy-error: #c0392b;
-  --color-cy-error-light: #fdecea;
+  /*
+   * “Light” mode = High Noon / frontier saloon — parchment, leather trim, rust-iron accent.
+   * Readable body (Libre Baskerville) + slab headlines (Rye) via [data-theme="light"] below.
+   */
+  --color-cy-bg: #e6d9c8;
+  --color-cy-surface: #efe4d3;
+  --color-cy-inset: #dccfb8;
+  --color-cy-border: #9a7b52;
+  --color-cy-border-strong: #6b4423;
+  --color-cy-text: #2a1810;
+  --color-cy-secondary: #5c4332;
+  --color-cy-muted: #7d6a58;
+  --color-cy-green: #b45309;
+  --color-cy-green-dark: #7c2d12;
+  --color-cy-green-light: #f4e4d4;
+  --color-cy-green-muted: #c2410c;
+  --color-cy-error: #991b1b;
+  --color-cy-error-light: #fce8e8;
 }
 
 [data-theme="dark"] {
@@ -44,10 +47,38 @@
     min-height: 100svh;
     background-color: var(--color-cy-bg);
     color: var(--color-cy-text);
+    font-family: var(--font-sans);
     font-size: 15px;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     transition: background-color 0.2s, color 0.2s;
+  }
+
+  [data-theme='light'] body {
+    font-family: 'Libre Baskerville', Georgia, 'Times New Roman', serif;
+    background-image:
+      linear-gradient(105deg, rgba(107, 68, 35, 0.07) 0%, transparent 42%),
+      linear-gradient(-18deg, rgba(180, 83, 9, 0.06) 0%, transparent 55%),
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 1px,
+        rgba(42, 24, 16, 0.04) 1px,
+        rgba(42, 24, 16, 0.04) 2px
+      );
+    background-attachment: fixed;
+  }
+
+  [data-theme='light'] h1,
+  [data-theme='light'] h2 {
+    font-family: 'Rye', 'Libre Baskerville', serif;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+  }
+
+  [data-theme='light'] code,
+  [data-theme='light'] .font-mono {
+    font-family: 'Special Elite', ui-monospace, monospace;
   }
 
   #root {
@@ -68,6 +99,40 @@
   .dot-grid {
     background-image: radial-gradient(circle, var(--color-cy-border-strong) 1px, transparent 1px);
     background-size: 24px 24px;
+  }
+
+  [data-theme='light'] .dot-grid {
+    background-image: radial-gradient(circle, rgba(107, 68, 35, 0.35) 1px, transparent 1px);
+    opacity: 0.55;
+  }
+
+  /* Wanted-poster frame + sun-bleached paper (home hero) */
+  [data-theme='light'] .western-wanted-frame {
+    border: 3px double var(--color-cy-border-strong);
+    box-shadow:
+      inset 0 0 0 1px rgba(239, 228, 211, 0.9),
+      inset 0 0 100px rgba(107, 68, 35, 0.12),
+      0 12px 40px rgba(42, 24, 16, 0.12);
+    border-radius: 2px;
+  }
+
+  [data-theme='light'] .western-star-rule {
+    background-image: repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 12px,
+      rgba(180, 83, 9, 0.35) 12px,
+      rgba(180, 83, 9, 0.35) 14px
+    );
+    height: 3px;
+    opacity: 0.85;
+  }
+
+  [data-theme='dark'] .western-wanted-frame {
+    border: none;
+    box-shadow: none;
+    padding-left: 0;
+    padding-right: 0;
   }
 
   @keyframes fade-up {

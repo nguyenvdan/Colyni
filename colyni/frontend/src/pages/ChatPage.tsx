@@ -556,15 +556,15 @@ export function ChatPage({ nodeId }: ChatPageProps) {
             <div
               className={
                 m.role === 'user'
-                  ? 'rounded-2xl rounded-tr-md bg-cy-text px-4 py-3 text-[14px] leading-[1.6] text-white'
+                  ? 'rounded-2xl rounded-tr-md border border-cy-border bg-cy-surface px-4 py-3 text-[14px] leading-[1.6] text-cy-text'
                   : 'rounded-2xl rounded-tl-md border border-cy-border bg-cy-surface px-4 py-3 text-[14px] leading-[1.6] text-cy-text'
               }
             >
               <div className="whitespace-pre-wrap">{m.content}</div>
             </div>
             {m.role === 'user' && (
-              <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cy-text">
-                <User size={14} strokeWidth={2} className="text-white" />
+              <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-cy-border bg-cy-inset">
+                <User size={14} strokeWidth={2} className="text-cy-secondary" />
               </div>
             )}
           </div>

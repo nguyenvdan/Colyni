@@ -71,7 +71,7 @@ export default function App() {
   }, [machine.role, machine.coordinatorApiUrl, machine.localInferenceUrl, persistNodeId])
 
   return (
-    <div className="min-h-svh bg-cy-bg font-sans text-cy-text antialiased">
+    <div className="min-h-svh bg-cy-bg text-cy-text antialiased">
       <NavBar
         items={NAV_ITEMS}
         activeTab={tab}
@@ -125,7 +125,7 @@ export default function App() {
         )}
         {tab === 'contribute' && (
           <div className="mx-auto max-w-[1100px] px-6 pb-[max(10rem,env(safe-area-inset-bottom)+7rem)] pt-10 md:px-12 sm:pb-32">
-            <ContributePage />
+            <ContributePage nodeId={nodeId} />
           </div>
         )}
         {tab === 'settings' && (
