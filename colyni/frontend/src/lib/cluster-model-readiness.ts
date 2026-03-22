@@ -153,7 +153,8 @@ export function findInstanceForModel(
   if (!raw || typeof raw !== 'object') return null
   for (const inst of Object.values(raw)) {
     if (!inst || typeof inst !== 'object') continue
-    const o = inst as Record<string, unknown>
+    // Instances may be wrapped in a tagged variant (e.g. { MlxRingInstance: {...} })
+    const o = (getTaggedPayload(inst) ?? inst) as Record<string, unknown>
     const sa = (o.shardAssignments ?? o.shard_assignments) as Record<string, unknown> | undefined
     if (!sa) continue
     const mid = String(sa.modelId ?? sa.model_id ?? '')
