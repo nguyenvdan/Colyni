@@ -112,7 +112,7 @@ def place_instance(
             "Pipeline parallelism is not supported for DeepSeek V3.1 (8-bit)"
         )
 
-    smallest_cycles = get_largest_cycles(cycles_with_sufficient_memory)
+    smallest_cycles = get_smallest_cycles(cycles_with_sufficient_memory)
 
     smallest_rdma_cycles = [
         cycle for cycle in smallest_cycles if topology.is_rdma_cycle(cycle)
