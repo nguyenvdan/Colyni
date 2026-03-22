@@ -12,11 +12,14 @@ CHAT_COST = 5
 EARN_POOL = 10
 HEARTBEAT_STALE_SECONDS = 90.0
 
+# New accounts (first seen node_id) start here — demo-friendly starting balance.
+DEMO_STARTING_BALANCE = 574
+
 
 async def ensure_account(conn: aiosqlite.Connection, node_id: str) -> None:
     await conn.execute(
-        "INSERT OR IGNORE INTO accounts (node_id, balance) VALUES (?, 0)",
-        (node_id,),
+        "INSERT OR IGNORE INTO accounts (node_id, balance) VALUES (?, ?)",
+        (node_id, DEMO_STARTING_BALANCE),
     )
 
 
