@@ -56,4 +56,6 @@ source "$ROOT/scripts/demo-model-allowlist.sh"
 
 cd "$ROOT/inference"
 export COLYNI_CLUSTER_MODEL_LOAD_TIMEOUT="${COLYNI_CLUSTER_MODEL_LOAD_TIMEOUT:-1800}"
+# If this Mac becomes cluster master, placement uses swap in RAM totals (same as coordinator).
+export COLYNI_CLUSTER_PLACEMENT_INCLUDE_SWAP="${COLYNI_CLUSTER_PLACEMENT_INCLUDE_SWAP:-1}"
 uv run colyni-cluster

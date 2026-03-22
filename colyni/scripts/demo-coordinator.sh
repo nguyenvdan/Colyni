@@ -82,9 +82,10 @@ if [[ -n "${COLYNI_CLUSTER_MODEL_ALLOWLIST:-}" ]]; then
   echo "    (show all: COLYNI_FULL_MODEL_CATALOG=1 $0)"
 fi
 
-# Large models (e.g. 70B): placement sums each Mac's \"available\" RAM across the mesh.
-# If loading fails with \"No cycles found with sufficient memory\", quit heavy apps or try:
-#   export COLYNI_CLUSTER_PLACEMENT_INCLUDE_SWAP=1
+# Large models (e.g. 70B): placement needs combined headroom ≈ model storage_size (~28–30 GiB
+# for 3-bit 70B). macOS \"available\" RAM is often low; counting swap fixes most demos.
+# Disable with: COLYNI_CLUSTER_PLACEMENT_INCLUDE_SWAP=0
+export COLYNI_CLUSTER_PLACEMENT_INCLUDE_SWAP="${COLYNI_CLUSTER_PLACEMENT_INCLUDE_SWAP:-1}"
 
 # --- Process management ---
 PIDS=()

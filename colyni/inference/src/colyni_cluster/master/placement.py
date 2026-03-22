@@ -105,18 +105,21 @@ def place_instance(
             best_sum_bytes = max(best_sum_bytes, s)
         best_gib = best_sum_bytes / (1024**3)
         multi = sum(1 for c in candidate_cycles if len(c) > 1)
+        swap_hint = (
+            "Demo scripts default COLYNI_CLUSTER_PLACEMENT_INCLUDE_SWAP=1 (ram+swap per node). "
+            "If effective equals ram_avail only, restart colyni-cluster with that export, "
+            "or free ~4+ GiB combined RAM so the sum exceeds the model size."
+        )
         raise ValueError(
             "No cycles found with sufficient memory: "
             f"model {command.model_card.model_id} needs {req.in_gb:.2f} GiB "
-            "summed across nodes in a placement cycle (see model card storage_size). "
+            "summed across nodes in one placement cycle (model card storage_size). "
             f"Largest qualifying candidate cycle had ~{best_gib:.2f} GiB effective. "
             f"Topology nodes: {len(list(topology.list_nodes()))}; "
             f"candidate cycles (min_nodes>={command.min_nodes}): {len(candidate_cycles)} "
             f"({multi} multi-node). "
             f"Per node: {'; '.join(node_lines)}. "
-            "Fix: quit apps to raise macOS 'available' RAM, ensure every Mac is in the "
-            "mesh and heartbeating, or set COLYNI_CLUSTER_PLACEMENT_INCLUDE_SWAP=1 to "
-            "count swap in placement (slower, may still OOM)."
+            f"{swap_hint}"
         )
 
     if command.sharding == Sharding.Tensor:
