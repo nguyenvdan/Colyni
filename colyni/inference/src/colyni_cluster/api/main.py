@@ -354,6 +354,10 @@ class API:
         self.app.post("/onboarding")(self.complete_onboarding)
 
     async def place_instance(self, payload: PlaceInstanceParams):
+        for iid in list(self.state.instances):
+            logger.info(f"Auto-unloading instance {iid} before placing new model")
+            await self._send(DeleteInstance(instance_id=iid))
+
         command = PlaceInstance(
             model_card=await ModelCard.load(payload.model_id),
             sharding=payload.sharding,
