@@ -555,11 +555,11 @@ def apply_chat_template(
         return prompt
 
     extra_kwargs: dict[str, Any] = {}
-    if task_params.enable_thinking is not None:
-        # Qwen3 and GLM use "enable_thinking"; DeepSeek uses "thinking".
-        # Jinja ignores unknown variables, so passing both is safe.
-        extra_kwargs["enable_thinking"] = task_params.enable_thinking
-        extra_kwargs["thinking"] = task_params.enable_thinking
+    thinking = task_params.enable_thinking if task_params.enable_thinking is not None else False
+    # Qwen3 and GLM use "enable_thinking"; DeepSeek uses "thinking".
+    # Jinja ignores unknown variables, so passing both is safe.
+    extra_kwargs["enable_thinking"] = thinking
+    extra_kwargs["thinking"] = thinking
     if task_params.reasoning_effort is not None:
         extra_kwargs["reasoning_effort"] = task_params.reasoning_effort
 
