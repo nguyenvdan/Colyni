@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Bot, Loader2, User } from 'lucide-react'
+import { Bot, Loader2, Monitor, User } from 'lucide-react'
 
 import { AIChatInput } from '@/components/ui/ai-chat-input'
 import { useMachineRole } from '@/hooks/use-machine-role'
 import {
+  clusterSummary,
   describeLoadStatus,
   findInstanceForModel,
   isModelReadyOnCluster,
+  type ClusterSummary,
 } from '@/lib/cluster-model-readiness'
 import { parseChatApiError } from '@/lib/chat-errors'
 import { apiUrl } from '@/lib/api'
@@ -28,6 +30,8 @@ type ModelPipeline =
       step: 'checking' | 'placing' | 'waiting'
       computers: number
       detail?: string
+      downloadPct?: number | null
+      layerPct?: number | null
     }
   | { kind: 'ready'; computers: number }
   | { kind: 'error'; message: string }
@@ -76,6 +80,7 @@ export function ChatPage({ nodeId }: ChatPageProps) {
   const [error, setError] = useState<ChatErrorState>(null)
   const [pipeline, setPipeline] = useState<ModelPipeline>({ kind: 'idle' })
   const [loadRetry, setLoadRetry] = useState(0)
+  const [cluster, setCluster] = useState<ClusterSummary | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const loadAbortRef = useRef<AbortController | null>(null)
 
@@ -131,6 +136,21 @@ export function ChatPage({ nodeId }: ChatPageProps) {
   }, [nodeId, refreshBalance])
 
   useEffect(() => {
+    let cancelled = false
+    const poll = async () => {
+      try {
+        const r = await fetch(apiUrl('/api/cluster/state'))
+        if (!r.ok || cancelled) return
+        const d = (await r.json()) as Record<string, unknown>
+        if (!cancelled) setCluster(clusterSummary(d))
+      } catch { /* cluster unavailable */ }
+    }
+    void poll()
+    const t = window.setInterval(poll, 5_000)
+    return () => { cancelled = true; window.clearInterval(t) }
+  }, [])
+
+  useEffect(() => {
     loadAbortRef.current?.abort()
     if (!modelId.trim()) {
       setPipeline({ kind: 'idle' })
@@ -182,10 +202,11 @@ export function ChatPage({ nodeId }: ChatPageProps) {
         })
         const raw = await pr.text()
         if (!pr.ok) {
-          setPipeline({
-            kind: 'error',
-            message: parseErrBody(raw) || `Could not start model (${pr.status}).`,
-          })
+          let msg = parseErrBody(raw) || `Could not start model (${pr.status}).`
+          if (msg.toLowerCase().includes('memory') || msg.toLowerCase().includes('sufficient')) {
+            msg += ' This model needs more RAM than the cluster currently has. Make sure all contributor Macs have joined the mesh (check the computer count above).'
+          }
+          setPipeline({ kind: 'error', message: msg })
           return
         }
 
@@ -204,6 +225,8 @@ export function ChatPage({ nodeId }: ChatPageProps) {
             step: 'waiting',
             computers: d.computers,
             detail,
+            downloadPct: d.downloadPct,
+            layerPct: d.layerPct,
           })
 
           if (d.ready) {
@@ -327,7 +350,28 @@ export function ChatPage({ nodeId }: ChatPageProps) {
 
   return (
     <div className="mx-auto flex h-[calc(100svh-11rem)] max-w-3xl flex-col sm:h-[calc(100svh-160px)]">
-      <div className="mb-4 flex items-center justify-end">
+      {/* Top bar: cluster nodes + credits */}
+      <div className="mb-4 flex items-center justify-between gap-3">
+        {cluster ? (
+          <div className="flex items-center gap-2 rounded-full border border-cy-border bg-cy-inset px-3 py-1">
+            <Monitor size={13} strokeWidth={1.5} className={cluster.nodeCount > 1 ? 'text-cy-green' : 'text-cy-muted'} />
+            <span className={cn(
+              'font-mono text-[13px] font-semibold tabular-nums',
+              cluster.nodeCount > 1 ? 'text-cy-green' : 'text-cy-muted',
+            )}>
+              {cluster.nodeCount}
+            </span>
+            <span className="text-[10px] font-medium uppercase tracking-wider text-cy-secondary">
+              {cluster.nodeCount === 1 ? 'computer' : 'computers'}
+            </span>
+            <span className="mx-1 text-cy-border">|</span>
+            <span className="font-mono text-[12px] tabular-nums text-cy-secondary">
+              {cluster.totalMemoryGb.toFixed(0)} GB
+            </span>
+          </div>
+        ) : (
+          <div />
+        )}
         <div className="flex items-center gap-1.5 rounded-full border border-cy-green/20 bg-cy-green-light px-3 py-1">
           <span className="h-1.5 w-1.5 rounded-full bg-cy-green" />
           <span className="font-mono text-[13px] font-semibold tabular-nums text-cy-green">
@@ -348,7 +392,7 @@ export function ChatPage({ nodeId }: ChatPageProps) {
         >
           <div className="flex items-start gap-2">
             <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin" aria-hidden />
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="font-semibold text-cy-text">
                 {pipeline.computers <= 0
                   ? 'Preparing this model on the cluster…'
@@ -361,8 +405,34 @@ export function ChatPage({ nodeId }: ChatPageProps) {
                 {pipeline.step === 'checking' && 'Checking if the model is already running…'}
                 {pipeline.step === 'waiting' &&
                   (pipeline.detail ??
-                    'Usually slow because of downloading from Hugging Face and loading weights into memory — especially the first time.')}
+                    'Downloading weights and loading into memory — first time is slowest.')}
               </p>
+              {pipeline.step === 'waiting' && (pipeline as { downloadPct?: number | null }).downloadPct != null && (
+                <div className="mt-2">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-cy-green/15">
+                    <div
+                      className="h-full rounded-full bg-cy-green transition-all duration-500"
+                      style={{ width: `${(pipeline as { downloadPct?: number }).downloadPct ?? 0}%` }}
+                    />
+                  </div>
+                  <p className="mt-1 text-right font-mono text-[10px] text-cy-muted">
+                    {(pipeline as { downloadPct?: number }).downloadPct}%
+                  </p>
+                </div>
+              )}
+              {pipeline.step === 'waiting' && (pipeline as { layerPct?: number | null }).layerPct != null && !(pipeline as { downloadPct?: number | null }).downloadPct && (
+                <div className="mt-2">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-cy-green/15">
+                    <div
+                      className="h-full rounded-full bg-cy-green transition-all duration-500"
+                      style={{ width: `${(pipeline as { layerPct?: number }).layerPct ?? 0}%` }}
+                    />
+                  </div>
+                  <p className="mt-1 text-right font-mono text-[10px] text-cy-muted">
+                    layers {(pipeline as { layerPct?: number }).layerPct}%
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -376,8 +446,9 @@ export function ChatPage({ nodeId }: ChatPageProps) {
         >
           <p className="font-semibold text-cy-text">Ready to chat</p>
           <p className="mt-0.5 text-[12px] text-cy-secondary">
-            This model is running on {pipeline.computers}{' '}
-            {pipeline.computers === 1 ? 'machine' : 'machines'}. Type below whenever you like.
+            Running on {pipeline.computers}{' '}
+            {pipeline.computers === 1 ? 'machine' : 'machines'}
+            {cluster && cluster.nodeCount > 1 && ` · ${cluster.nodeCount} in cluster (${cluster.totalMemoryGb.toFixed(0)} GB total)`}
           </p>
         </div>
       )}
@@ -385,6 +456,12 @@ export function ChatPage({ nodeId }: ChatPageProps) {
       {modelId.trim() && pipeline.kind === 'error' && (
         <div className="mb-3 rounded-xl border border-cy-error/25 bg-cy-error-light px-4 py-3 text-[13px] text-cy-error">
           <p>{pipeline.message}</p>
+          {cluster && (
+            <p className="mt-1 text-[12px] text-cy-error/70">
+              Cluster: {cluster.nodeCount} {cluster.nodeCount === 1 ? 'computer' : 'computers'} · {cluster.totalMemoryGb.toFixed(0)} GB total ({cluster.availMemoryGb.toFixed(0)} GB free)
+              {cluster.nodeCount < 3 && ' — more machines may need to join the mesh'}
+            </p>
+          )}
           <div className="mt-2 flex flex-wrap gap-2">
             <button
               type="button"
