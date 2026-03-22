@@ -17,7 +17,7 @@ dependencies = [
   "loguru>=0.7.3",
   "colyni-pyo3-bindings",                      # rust bindings
   "anyio==4.11.0",
-  "mlx; sys_platform == 'darwin'",
+  "mlx==0.30.6; sys_platform == 'darwin'",
   "mlx[cpu]==0.30.6; sys_platform == 'linux'",
   "mlx-lm",
   "tiktoken>=0.12.0",                          # required for kimi k2 tokenizer
@@ -60,8 +60,9 @@ members = ["rust/colyni_pyo3_bindings", "bench"]
 
 [tool.uv.sources]
 colyni-pyo3-bindings = { workspace = true }
-mlx = { git = "https://github.com/rltakashige/mlx-jaccl-fix-small-recv.git", branch = "address-rdma-gpu-locks", marker = "sys_platform == 'darwin'" }
-mlx-lm = { git = "https://github.com/rltakashige/mlx-lm", branch = "leo/eval-left-padding-in-batched-rotation" }
+# Original forks (JACCL/RDMA fix — uncomment for specialized hardware):
+# mlx = { git = "https://github.com/rltakashige/mlx-jaccl-fix-small-recv.git", branch = "address-rdma-gpu-locks", marker = "sys_platform == 'darwin'" }
+# mlx-lm = { git = "https://github.com/rltakashige/mlx-lm", branch = "leo/eval-left-padding-in-batched-rotation" }
 # Uncomment to use local mlx/mlx-lm development versions:
 # mlx = { path = "/Users/Shared/mlx", editable=true }
 # mlx-lm = { path = "/Users/Shared/mlx-lm", editable=true }
