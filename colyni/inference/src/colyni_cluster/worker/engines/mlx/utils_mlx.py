@@ -588,6 +588,12 @@ def apply_chat_template(
     if partial_assistant_content:
         prompt += partial_assistant_content
 
+    if not thinking and hasattr(tokenizer, "think_start") and tokenizer.think_start:
+        think_open = tokenizer.think_start
+        think_close = getattr(tokenizer, "think_end", "</think>")
+        if think_open not in prompt:
+            prompt += f"{think_open}\n\n{think_close}\n\n"
+
     logger.info(prompt)
 
     return prompt
