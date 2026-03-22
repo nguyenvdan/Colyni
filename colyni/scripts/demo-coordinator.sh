@@ -6,6 +6,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+# shellcheck source=detect-lan-ip.sh
+source "$ROOT/scripts/detect-lan-ip.sh"
+
 if [[ ! -f "$ROOT/backend/.venv/bin/activate" ]]; then
   echo "Run ./scripts/setup.sh first."
   exit 1
@@ -16,22 +19,6 @@ if [[ "${SKIP_UI_BUILD:-0}" != "1" ]]; then
 else
   echo "==> SKIP_UI_BUILD=1 — not rebuilding frontend/dist"
 fi
-
-detect_lan_ip() {
-  local ip=""
-  if command -v ipconfig &>/dev/null; then
-    ip=$(ipconfig getifaddr en0 2>/dev/null || true)
-    [[ -z "$ip" ]] && ip=$(ipconfig getifaddr en1 2>/dev/null || true)
-  fi
-  if [[ -z "$ip" ]] && [[ -n "${LAN_IP:-}" ]]; then
-    ip="$LAN_IP"
-  fi
-  if [[ -z "$ip" ]] && command -v hostname &>/dev/null; then
-    ip=$(hostname -I 2>/dev/null | awk '{print $1}' || true)
-  fi
-  [[ -z "$ip" ]] && ip="127.0.0.1"
-  echo "$ip"
-}
 
 LAN_IP=$(detect_lan_ip)
 export COLYNI_BACKEND_PORT="${COLYNI_BACKEND_PORT:-8787}"
@@ -136,6 +123,12 @@ fi
 echo ""
 echo "  Contributors (manual): Settings → Contributor → Coordinator API →"
 echo "    http://${LAN_IP}:${COLYNI_BACKEND_PORT}"
+echo ""
+echo "  If other devices cannot open http://${LAN_IP}:52415:"
+echo "    • macOS: System Settings → Network → Firewall — allow incoming for Python / colyni-cluster"
+echo "    • Wrong IP? Run: ipconfig getifaddr en0  (and en1) — then: LAN_IP=192.168.x.x $0"
+echo "    • From guest: curl -sS -o /dev/null -w '%{http_code}\\n' http://${LAN_IP}:52415/"
+echo "    • Copy invite only after opening the cluster UI with the LAN URL (not localhost)"
 echo ""
 echo "  Stop: Ctrl+C"
 echo "  Env:  LAN_IP=… · SKIP_UI_BUILD=1 · WITH_VITE=1 · COLYNI_DEMO_LAN=0"

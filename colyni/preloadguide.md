@@ -18,6 +18,20 @@ cd inference && uv sync && cd ..
 - All machines on the **same Wi‑Fi** (or LAN), can `ping` each other.
 - **Disable sleep** during the demo; allow **firewall** prompts for the cluster if asked.
 
+### LAN URL does not load (other laptop / phone)
+
+The cluster UI is served on **port 52415** bound to all interfaces (`0.0.0.0`). If `http://<Mac1-IP>:52415` never loads:
+
+1. **Coordinator script running?** You should see “Running on http://0.0.0.0:52415” in the terminal.
+2. **Correct IP?** On Mac 1 run `ipconfig getifaddr en0` and `en1`, or `./scripts/detect-lan-ip.sh`. If the script picked the wrong interface, restart with  
+   `LAN_IP=192.168.x.x ./scripts/demo-3-macs.sh coordinator`
+3. **macOS Firewall** — System Settings → Network → Firewall → allow **incoming** for **Python** / **colyni-cluster** (or temporarily turn Firewall off to test).
+4. **From the guest machine:**  
+   `curl -sS -o /dev/null -w '%{http_code}\n' http://<Mac1-IP>:52415/`  
+   Expect `200`. If it hangs or fails, it’s network/firewall, not the browser.
+5. **Guest Wi‑Fi isolation** — Some routers block device-to-device; try another network or disable “AP isolation”.
+6. **Invite link:** Open the coordinator UI using **`http://<LAN-IP>:52415`** in the address bar (not `localhost`) before **Copy invite link**, or guests may get a bad link (see Settings warning).
+
 ---
 
 ## Roles

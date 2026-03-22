@@ -11,21 +11,8 @@ if [[ ! -d "$ROOT/inference" ]]; then
   exit 1
 fi
 
-detect_lan_ip() {
-  local ip=""
-  if command -v ipconfig &>/dev/null; then
-    ip=$(ipconfig getifaddr en0 2>/dev/null || true)
-    [[ -z "$ip" ]] && ip=$(ipconfig getifaddr en1 2>/dev/null || true)
-  fi
-  if [[ -z "$ip" ]] && [[ -n "${LAN_IP:-}" ]]; then
-    ip="$LAN_IP"
-  fi
-  if [[ -z "$ip" ]] && command -v hostname &>/dev/null; then
-    ip=$(hostname -I 2>/dev/null | awk '{print $1}' || true)
-  fi
-  [[ -z "$ip" ]] && ip="127.0.0.1"
-  echo "$ip"
-}
+# shellcheck source=detect-lan-ip.sh
+source "$ROOT/scripts/detect-lan-ip.sh"
 
 LAN_IP=$(detect_lan_ip)
 
