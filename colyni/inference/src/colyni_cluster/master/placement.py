@@ -6,6 +6,7 @@ from typing import Sequence
 from colyni_cluster.master.placement_utils import (
     Cycle,
     filter_cycles_by_memory,
+    get_largest_cycles,
     get_mlx_jaccl_coordinators,
     get_mlx_jaccl_devices_matrix,
     get_mlx_ring_hosts_by_node,
@@ -111,7 +112,7 @@ def place_instance(
             "Pipeline parallelism is not supported for DeepSeek V3.1 (8-bit)"
         )
 
-    smallest_cycles = get_smallest_cycles(cycles_with_sufficient_memory)
+    smallest_cycles = get_largest_cycles(cycles_with_sufficient_memory)
 
     smallest_rdma_cycles = [
         cycle for cycle in smallest_cycles if topology.is_rdma_cycle(cycle)
