@@ -87,7 +87,7 @@ Give them **Mac 1’s LAN IP** and port **8787**, or the **invite link**.
 
 Colyni stores models under **`~/.colyni-cluster/models/<org--model>/`** on macOS (slash in `org/model` becomes `--`). You can fill that folder yourself; the cluster will use it the same way as an in-app download.
 
-**Disk:** A 70B **3-bit** MLX repo is on the order of **~30 GiB** on disk; 70B 4-bit **~40 GiB**; 24B-class 4-bit **~15 GiB**. Ensure enough free space before downloading (check with `df -h ~`).
+**Disk:** The demo **Qwen2.5-32B-Instruct-4bit** repo is on the order of **~19 GiB** on disk; 70B-class models are **~30–40 GiB**. Ensure enough free space (check with `df -h ~`).
 
 **Option A — helper script (uses `huggingface_hub` from `inference`):**
 
@@ -118,7 +118,7 @@ export INFERENCE_URL="${INFERENCE_URL:-http://127.0.0.1:52415}"
 python3 scripts/prefetch-model-downloads.py "mlx-community/YOUR_MODEL_ID"
 ```
 
-Replace `YOUR_MODEL_ID` with the catalog id (e.g. `Llama-3.3-70B-Instruct-3bit`). The script uses `/instance/previews` and `/download/start` so **each node** pulls its shard.
+Replace `YOUR_MODEL_ID` with the catalog id (e.g. `Qwen2.5-32B-Instruct-4bit`). The script uses `/instance/previews` and `/download/start` so **each node** pulls its shard.
 
 **Environment:**
 

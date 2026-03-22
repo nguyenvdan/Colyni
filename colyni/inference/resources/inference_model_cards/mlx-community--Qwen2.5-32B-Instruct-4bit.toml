@@ -1,0 +1,13 @@
+model_id = "mlx-community/Qwen2.5-32B-Instruct-4bit"
+n_layers = 64
+hidden_size = 5120
+num_key_value_heads = 8
+supports_tensor = true
+tasks = ["TextGeneration"]
+family = "qwen"
+quantization = "4bit"
+base_model = "Qwen2.5 32B"
+capabilities = ["text"]
+
+[storage_size]
+in_bytes = 20000000000
